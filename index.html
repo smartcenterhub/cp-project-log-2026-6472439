@@ -36,13 +36,16 @@ button.warn{background:#dc2626}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, updateDoc }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const db = getFirestore(initializeApp({
+const _app = initializeApp({
   apiKey:'AIzaSyCEP7E_VJ6JkE_AZ5udN4aZfa3wUlLYr4I',
   authDomain:'daily-report-naver-ad-2026.firebaseapp.com',
   projectId:'daily-report-naver-ad-2026',
   appId:'1:649512750747:web:6597ebc08040f413be003e'
-}));
+});
+const db = getFirestore(_app);
+signInAnonymously(getAuth(_app)).catch(e=>console.warn('[auth]',e));
 
 const log = document.getElementById('log');
 function L(msg, cls){ const d=document.createElement('div'); d.className=cls||''; d.innerHTML=msg; log.appendChild(d); log.scrollTop=log.scrollHeight; }
