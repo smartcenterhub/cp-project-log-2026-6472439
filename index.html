@@ -1229,6 +1229,19 @@
     color: var(--warn, #f59e0b);
     font-size: 10px;
   }
+  /* 중복 메일 행 — 회색 처리 */
+  .parse-result-table tr.parse-dup-row td {
+    background: rgba(245, 158, 11, 0.04);
+    color: var(--text-muted);
+  }
+  .parse-result-table tr.parse-dup-row .subj-cell {
+    text-decoration: line-through;
+    text-decoration-color: rgba(0, 0, 0, 0.25);
+  }
+  .parse-result-table tr.parse-dup-row .warn-cell {
+    color: var(--warn, #f59e0b);
+    font-weight: 600;
+  }
 
   .spinner-wrap {
     display: flex;
@@ -2997,18 +3010,40 @@
   .brand-thread-list { display: grid; gap: 6px; }
   .brand-thread-item {
     display: flex;
-    gap: 10px;
+    flex-direction: column;
+    gap: 4px;
     padding: 8px 12px;
     background: white;
     border: 1px solid var(--border);
     border-radius: 5px;
     cursor: pointer;
-    align-items: center;
     transition: all 0.12s;
   }
   .brand-thread-item:hover {
     border-color: var(--accent, #4f46e5);
     background: rgba(79, 70, 229, 0.02);
+  }
+  .brand-thread-row1 {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .brand-thread-latest {
+    font-size: 11px;
+    color: var(--text-muted);
+    padding-left: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .brand-thread-latest.empty {
+    color: var(--text-faint);
+    font-style: italic;
+  }
+  .brand-thread-latest-type {
+    color: var(--accent, #4f46e5);
+    font-weight: 600;
+    margin: 0 4px;
   }
   .brand-thread-id {
     font-size: 10.5px;
@@ -3768,6 +3803,41 @@
   }
   .mt-fab-add:active { transform: scale(0.95); }
   
+  /* 통화/미팅/메모 폼 — 좌측 사이드바 + 우측 메인 */
+  .simple-log-form-wrap {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  .simple-log-sidebar {
+    padding-right: 18px;
+    border-right: 1px solid var(--border);
+  }
+  .simple-log-meta {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-soft, rgba(0, 0, 0, 0.06));
+    font-weight: 500;
+  }
+  .simple-log-main {
+    min-width: 0;
+  }
+  @media (max-width: 800px) {
+    .simple-log-form-wrap {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .simple-log-sidebar {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding-right: 0;
+      padding-bottom: 14px;
+    }
+  }
+  
   /* FAB 드롭다운 메뉴 (메일/통화/미팅/메모 선택) */
   .mt-fab-menu {
     position: absolute;
@@ -3798,11 +3868,21 @@
   }
   .mt-fab-menu-item-icon {
     font-size: 16px;
-    width: 22px;
-    text-align: center;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.04);
+    flex-shrink: 0;
   }
+  .mt-fab-menu-item-icon.type-mail { background: rgba(234, 179, 8, 0.20); }
+  .mt-fab-menu-item-icon.type-call { background: rgba(34, 197, 94, 0.20); }
+  .mt-fab-menu-item-icon.type-meeting { background: rgba(59, 130, 246, 0.20); }
+  .mt-fab-menu-item-icon.type-memo { background: rgba(236, 72, 153, 0.18); }
   
-  /* 타임라인 카드 type 칩 (메일은 표시 안 함 - 기본) */
+  /* 타임라인 카드 type 칩 (메일/통화/미팅/메모 모두 표시) */
   .mt-tl-type-chip {
     font-size: 9.5px;
     padding: 1px 7px;
@@ -3811,10 +3891,22 @@
     letter-spacing: 0.04em;
     flex-shrink: 0;
   }
-  .mt-tl-type-chip.t-메일 { display: none; }
-  .mt-tl-type-chip.t-통화 { background: rgba(20, 184, 166, 0.15); color: #0f766e; }
-  .mt-tl-type-chip.t-미팅 { background: rgba(245, 158, 11, 0.18); color: #b45309; }
-  .mt-tl-type-chip.t-메모 { background: rgba(168, 85, 247, 0.13); color: #7e22ce; }
+  .mt-tl-type-chip.t-메일 { 
+    background: rgba(234, 179, 8, 0.18); 
+    color: #854d0e; 
+  }
+  .mt-tl-type-chip.t-통화 { 
+    background: rgba(34, 197, 94, 0.18); 
+    color: #15803d; 
+  }
+  .mt-tl-type-chip.t-미팅 { 
+    background: rgba(59, 130, 246, 0.18); 
+    color: #1d4ed8; 
+  }
+  .mt-tl-type-chip.t-메모 { 
+    background: rgba(236, 72, 153, 0.16); 
+    color: #be185d; 
+  }
   
   /* modal 자체에 relative 적용해서 fab 위치 기준점 만들기 */
   .modal { position: relative; }
@@ -3917,11 +4009,55 @@
     display: grid;
     grid-template-columns: 84px 1fr;
     gap: 16px;
-    padding: 14px 0;
-    border-bottom: 1px dashed var(--border-soft, rgba(0,0,0,0.05));
+    padding: 12px 16px;
+    border: 1px solid var(--border, rgba(0,0,0,0.08));
+    border-radius: 7px;
+    margin: 0 -16px 8px;
+    transition: background 0.15s, border-color 0.15s;
   }
-  .mt-tl-event:last-child { border-bottom: none; }
-  .mt-tl-event.expanded { background: rgba(0,0,0,0.015); border-radius: 6px; }
+  .mt-tl-event:last-child { margin-bottom: 0; }
+  .mt-tl-event.expanded { background: rgba(0,0,0,0.02); }
+  
+  /* 카드 type별 — 매우 연한 배경 + 테두리는 type 색 약하게 */
+  .mt-tl-event.tl-type-메일 { 
+    background: rgba(234, 179, 8, 0.035); 
+    border-color: rgba(234, 179, 8, 0.22); 
+  }
+  .mt-tl-event.tl-type-메일:hover { 
+    background: rgba(234, 179, 8, 0.07); 
+    border-color: rgba(234, 179, 8, 0.4); 
+  }
+  .mt-tl-event.tl-type-메일.expanded { background: rgba(234, 179, 8, 0.09); }
+  
+  .mt-tl-event.tl-type-통화 { 
+    background: rgba(34, 197, 94, 0.035); 
+    border-color: rgba(34, 197, 94, 0.24); 
+  }
+  .mt-tl-event.tl-type-통화:hover { 
+    background: rgba(34, 197, 94, 0.07); 
+    border-color: rgba(34, 197, 94, 0.4); 
+  }
+  .mt-tl-event.tl-type-통화.expanded { background: rgba(34, 197, 94, 0.09); }
+  
+  .mt-tl-event.tl-type-미팅 { 
+    background: rgba(59, 130, 246, 0.04); 
+    border-color: rgba(59, 130, 246, 0.24); 
+  }
+  .mt-tl-event.tl-type-미팅:hover { 
+    background: rgba(59, 130, 246, 0.075); 
+    border-color: rgba(59, 130, 246, 0.4); 
+  }
+  .mt-tl-event.tl-type-미팅.expanded { background: rgba(59, 130, 246, 0.10); }
+  
+  .mt-tl-event.tl-type-메모 { 
+    background: rgba(236, 72, 153, 0.035); 
+    border-color: rgba(236, 72, 153, 0.24); 
+  }
+  .mt-tl-event.tl-type-메모:hover { 
+    background: rgba(236, 72, 153, 0.075); 
+    border-color: rgba(236, 72, 153, 0.4); 
+  }
+  .mt-tl-event.tl-type-메모.expanded { background: rgba(236, 72, 153, 0.09); }
   .mt-tl-date {
     font-size: 12px;
     font-weight: 600;
@@ -4266,8 +4402,18 @@ async function apiFetchAll(forceRefresh) {
   STATE.loading = true;
   // 진행률 가짜 진행 시작 (showLoading이 이미 호출된 경우만 시각 효과 적용됨)
   if (typeof startInitLoadingProgress === 'function') startInitLoadingProgress();
+  // 강제 새로고침이면 상단 로딩 바 표시 (저장/삭제 후 재로드)
+  if (forceRefresh && typeof showTopLoading === 'function') {
+    showTopLoading(20, '데이터 새로고침 중...');
+  }
   try {
+    if (forceRefresh && typeof showTopLoading === 'function') {
+      showTopLoading(50, '데이터 새로고침 중...');
+    }
     const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=all');
+    if (forceRefresh && typeof showTopLoading === 'function') {
+      showTopLoading(80, '데이터 새로고침 중...');
+    }
     const json = await res.json();
     if (!json.ok) throw new Error(json.error || '데이터 로드 실패');
     STATE.data = json.data;
@@ -4276,7 +4422,14 @@ async function apiFetchAll(forceRefresh) {
     STATE.lastFetch = now;
     // 완료 — 95% → 100% 점프
     if (typeof finishInitLoading === 'function') finishInitLoading();
+    if (forceRefresh && typeof showTopLoading === 'function') {
+      showTopLoading(100, '✓ 완료');
+      setTimeout(() => { if (typeof hideTopLoading === 'function') hideTopLoading(); }, 250);
+    }
     return STATE.data;
+  } catch (err) {
+    if (forceRefresh && typeof hideTopLoading === 'function') hideTopLoading();
+    throw err;
   } finally {
     STATE.loading = false;
   }
@@ -4352,14 +4505,38 @@ async function apiDelete(sheet, id) {
 
 async function apiPost(body) {
   if (!CONFIG.APPS_SCRIPT_URL) throw new Error('Apps Script URL 미설정');
-  const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
-    method: 'POST',
-    // 헤더 생략 (CORS preflight 회피)
-    body: JSON.stringify(Object.assign({ secret: CONFIG.SECRET_KEY }, body))
-  });
-  const json = await res.json();
-  if (!json.ok) throw new Error(json.error || '요청 실패');
-  return json;
+  
+  // 작업 종류에 따라 메시지 결정
+  const actionLabels = {
+    'create': '추가 중',
+    'update': '저장 중',
+    'delete': '삭제 중'
+  };
+  const label = actionLabels[body.action] || '처리 중';
+  const sheetLabel = body.sheet ? ' (' + body.sheet + ')' : '';
+  
+  if (typeof showTopLoading === 'function') {
+    showTopLoading(30, label + sheetLabel + '...');
+  }
+  
+  try {
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL, {
+      method: 'POST',
+      // 헤더 생략 (CORS preflight 회피)
+      body: JSON.stringify(Object.assign({ secret: CONFIG.SECRET_KEY }, body))
+    });
+    if (typeof showTopLoading === 'function') showTopLoading(70, label + '...');
+    const json = await res.json();
+    if (!json.ok) throw new Error(json.error || '요청 실패');
+    if (typeof showTopLoading === 'function') {
+      showTopLoading(100, '✓ 완료');
+      setTimeout(() => { if (typeof hideTopLoading === 'function') hideTopLoading(); }, 250);
+    }
+    return json;
+  } catch (err) {
+    if (typeof hideTopLoading === 'function') hideTopLoading();
+    throw err;
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4957,7 +5134,7 @@ function parseMailText(text) {
   // "보낸 사람: 김홍주 <email>\n보낸 날짜: ..." → "From : ...\nSent : ..."
   text = text
     .replace(/(\n|^)[ \t]*보낸\s*사람\s*[:：][ \t]*/g, '$1From : ')
-    .replace(/(\n|^)[ \t]*보낸\s*날짜\s*[:：][ \t]*/g, '$1Sent : ')
+    .replace(/(\n|^)[ \t]*보낸\s*(?:날짜|시간)\s*[:：][ \t]*/g, '$1Sent : ')
     .replace(/(\n|^)[ \t]*보냄\s*[:：][ \t]*/g, '$1Sent : ')
     .replace(/(\n|^)[ \t]*받는\s*사람\s*[:：][ \t]*/g, '$1To : ')
     .replace(/(\n|^)[ \t]*참조\s*[:：][ \t]*/g, '$1Cc : ')
@@ -4968,8 +5145,14 @@ function parseMailText(text) {
   // "받는 사람\t임소영" / "받는 사람\n임소영" 둘 다 처리
   text = text
     .replace(/(\n|^)[ \t]*보낸\s*사람[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1From : $2')
-    .replace(/(\n|^)[ \t]*받는\s*사람[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1To : $2')
-    .replace(/(\n|^)[ \t]*참조[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1Cc : $2');
+    .replace(/(\n|^)[ \t]*받는\s*사람[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1To : $2');
+  
+  // 참조 (Cc) — 콜론 없는 형식 + 값이 여러 줄에 걸쳐 있을 수 있음 (이메일 주소 여러 개)
+  // "참조\n A <email>\n B <email>\n\n C <email>\n D <email>" → "Cc : A <e>, B <e>, C <e>, D <e>"
+  text = text.replace(
+    /(\n|^)[ \t]*참조[ \t]*\n+([ \t]*[^\n]*@[^\n]*(?:\n+[ \t]*[^\n]*@[^\n]*)*)/g,
+    (m, prefix, value) => prefix + 'Cc : ' + value.replace(/\n+/g, ' ').trim()
+  );
   
   // 독일어 날짜를 ISO로 정규화: "Freitag, 22. Mai 2026 09:02" → "2026-05-22 09:02"
   const GERMAN_MONTHS = {
@@ -5043,7 +5226,7 @@ function parseMailText(text) {
   );
   
   const isFormatB = /-----\s*Original Message\s*-----/i.test(text) || 
-                    (/(?:^|\n)\s*From\s*:/i.test(text) && /(?:^|\n)\s*(?:Sent|Date)\s*:/i.test(text));
+                    /(?:^|\n)\s*From\s*:/i.test(text);
   
   const result = {
     format: isFormatB ? 'b' : 'a',
@@ -5114,15 +5297,35 @@ function parseMailText(text) {
     result.to_emails = extractEmails(toSec);
     result.cc_emails = extractEmails(ccSec);
     
-    // 날짜·시간 (공백 또는 T 구분자)
-    const dt = sentSec.match(/(\d{4})-(\d{1,2})-(\d{1,2})[\sT]+(\d{1,2}):(\d{2})/);
+    // 날짜·시간 (공백 또는 T 구분자) — sentSec에서 우선
+    let dt = sentSec.match(/(\d{4})-(\d{1,2})-(\d{1,2})[\sT]+(\d{1,2}):(\d{2})/);
+    if (!dt) {
+      // Sent: 없으면 텍스트 앞부분 (~600자)에서 ISO 날짜 단독 줄 찾기
+      // (첫 메일의 경우 "2026-05-27 17:11:57 [GMT...]" 형식이 별도 줄에 있음)
+      dt = text.substring(0, 600).match(/(\d{4})-(\d{1,2})-(\d{1,2})[\sT]+(\d{1,2}):(\d{2})/);
+    }
     if (dt) {
       result.date = `${dt[1]}-${dt[2].padStart(2,'0')}-${dt[3].padStart(2,'0')}`;
       result.time = `${dt[4].padStart(2,'0')}:${dt[5]}`;
     }
     
-    // 제목 (첫 줄만)
-    result.subject = subjSec.split(/\n/)[0].trim();
+    // 제목 — Subject 라벨 우선, 없으면 텍스트 첫 의미있는 줄
+    if (subjSec) {
+      result.subject = subjSec.split(/\n/)[0].trim();
+    } else {
+      // Subject 라벨이 없는 첫 메일 — 텍스트 첫 줄 (헤더/날짜 줄 제외)
+      const lines = text.split('\n');
+      for (const ln of lines) {
+        const t = ln.trim();
+        if (!t) continue;
+        if (/^(?:From|To|Cc|Sent|Date|Subject)\s*:/i.test(t)) continue;
+        if (/^\d{4}[-/]\d/.test(t)) continue;  // 날짜로 시작
+        if (/^첨부\s*파일/.test(t)) continue;  // 첨부 라벨
+        if (/^\s*[<\[]/.test(t)) continue;  // 이메일 라인 시작
+        result.subject = t;
+        break;
+      }
+    }
     
     // 본문: Subject 라인 다음부터
     if (subjSec) {
@@ -5252,12 +5455,13 @@ function splitMailThread(text) {
     /\n[ \t]*-+\s*Original Message\s*-+[ \t]*\n/gi,
     /\n[ \t]*-+\s*원본\s*메[시세]지\s*-+[ \t]*\n/g,
     /\n[ \t]*-+\s*Forwarded message\s*-+[ \t]*\n/gi,
-    // 독일어 'Von: ...' 답장 인용 (Von 만 — From은 영문 패턴이 담당)
-    /\n[ \t]*Von\s*:\s+[^\n]+\n[ \t]*(?:Gesendet|Sent)\s*:/g,
+    // 독일어 'Von: ...' 답장 인용
+    /\n[ \t]*Von\s*:\s*[^\n]+\n[ \t]*(?:Gesendet|Sent)\s*:/g,
     // 영문 Outlook 답장 인용 (From: + 다음 줄에 Sent:)
-    /\n[ \t]*From\s*:\s+[^\n]+\n[ \t]*Sent\s*:/gi,
-    // 한국어 헤더 인용 (보낸 사람: + 다음 줄 보낸 날짜:/보냄:)
-    /\n[ \t]*보낸\s*사람\s*[:：]\s+[^\n]+\n[ \t]*(?:보낸\s*날짜|보냄)\s*[:：]/g,
+    /\n[ \t]*From\s*:\s*[^\n]+\n[ \t]*Sent\s*:/gi,
+    // 한국어 헤더 인용 (보낸 사람: + 다음 줄 보낸 날짜:/보낸 시간:/보냄:)
+    // 콜론 뒤 공백 없을 수도 있음 ("보낸사람:김홍주[email]") → \s* 사용
+    /\n[ \t]*보낸\s*사람\s*[:：]\s*[^\n]+\n[ \t]*(?:보낸\s*(?:날짜|시간)|보냄)\s*[:：]/g,
   ];
   
   patterns.forEach(re => {
@@ -5339,6 +5543,51 @@ function normalizeSubject(s) {
     if (result === before) break;
   }
   return result.trim();
+}
+
+// ─── 메일 중복 감지 ────────────────────────────────────────────
+// 비교 기준: 날짜 + 시간(시:분) + 발신자 ID + 수신자 IDs + 제목(정규화)
+// 같은 스레드 안에 동일한 메일이 이미 있으면 그 log 반환, 없으면 null
+function findDuplicateLog(parsedMail, fromStk, toStks, threadId) {
+  if (!threadId || !STATE.data || !Array.isArray(STATE.data.logs)) return null;
+  
+  const existing = STATE.data.logs.filter(l => l.thread_id === threadId);
+  if (existing.length === 0) return null;
+  
+  const pDate = String(parsedMail.date || '').slice(0, 10);
+  if (!pDate) return null;  // 날짜 없으면 비교 불가 → 중복 아님으로 처리
+  
+  const pTime = String(parsedMail.time || '').slice(0, 5);  // 시:분만
+  const pFromId = (fromStk && fromStk.stakeholder_id) || '';
+  const pToIds = (toStks || [])
+    .map(s => s && s.stakeholder_id)
+    .filter(Boolean)
+    .sort()
+    .join(',');
+  const pSubj = normalizeSubject(parsedMail.subject || '');
+  
+  return existing.find(l => {
+    const lDate = String(l.date || '').slice(0, 10);
+    if (lDate !== pDate) return false;
+    
+    const lTime = String(l.time || '').slice(0, 5);  // 시:분만
+    if (lTime !== pTime) return false;
+    
+    if ((l.from_id || '') !== pFromId) return false;
+    
+    const lToIds = String(l.to_ids || '')
+      .split(',')
+      .map(x => x.trim())
+      .filter(Boolean)
+      .sort()
+      .join(',');
+    if (lToIds !== pToIds) return false;
+    
+    const lSubj = normalizeSubject(l.subject || '');
+    if (lSubj !== pSubj) return false;
+    
+    return true;
+  }) || null;
 }
 
 // ─── 외부 도메인 → 회사명 추측 ─────────────────────────────────
@@ -7129,7 +7378,7 @@ function openMailThreadDetail(t) {
     }, '🔗');
     
     const event = el('div', { 
-      class: 'mt-tl-event', 
+      class: 'mt-tl-event tl-type-' + (l.type || '메일'), 
       'data-log-id': l.log_id  // 핵심 흐름에서 스크롤 타겟용
     }, [
       el('div', {}, [
@@ -7409,28 +7658,28 @@ function openMailThreadDetail(t) {
               class: 'mt-fab-menu-item', 
               onclick: () => { closeMenu(); openMailEditForm(t, null); }
             }, [
-              el('span', { class: 'mt-fab-menu-item-icon' }, '📧'),
+              el('span', { class: 'mt-fab-menu-item-icon type-mail' }, '📧'),
               el('span', {}, '메일 추가')
             ]),
             el('div', { 
               class: 'mt-fab-menu-item',
               onclick: () => { closeMenu(); openSimpleLogForm(t, null, { entryType: '통화' }); }
             }, [
-              el('span', { class: 'mt-fab-menu-item-icon' }, '📞'),
+              el('span', { class: 'mt-fab-menu-item-icon type-call' }, '📞'),
               el('span', {}, '통화 메모')
             ]),
             el('div', { 
               class: 'mt-fab-menu-item',
               onclick: () => { closeMenu(); openSimpleLogForm(t, null, { entryType: '미팅' }); }
             }, [
-              el('span', { class: 'mt-fab-menu-item-icon' }, '📅'),
+              el('span', { class: 'mt-fab-menu-item-icon type-meeting' }, '📅'),
               el('span', {}, '미팅 메모')
             ]),
             el('div', { 
               class: 'mt-fab-menu-item',
               onclick: () => { closeMenu(); openSimpleLogForm(t, null, { entryType: '메모' }); }
             }, [
-              el('span', { class: 'mt-fab-menu-item-icon' }, '📝'),
+              el('span', { class: 'mt-fab-menu-item-icon type-memo' }, '📝'),
               el('span', {}, '자유 메모')
             ])
           ]);
@@ -7849,28 +8098,36 @@ function openSimpleLogForm(thread, existingLog, options) {
   f.summary = el('textarea', { class: 'mp-input', rows: 6, placeholder: '상세 내용 / 결정 사항 / 다음 액션' });
   f.summary.value = t.summary || '';
   
-  const fieldRow = (label, control, hint) => el('div', { style: { marginBottom: '10px' } }, [
+  const fieldRow = (label, control, hint) => el('div', { style: { marginBottom: '12px' } }, [
     el('label', { style: { display: 'block', fontSize: '11.5px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '4px' } }, label),
     control,
     hint ? el('div', { style: { fontSize: '10.5px', color: 'var(--text-faint)', marginTop: '3px' } }, hint) : null
   ].filter(Boolean));
   
-  const body = el('div', {}, [
-    el('div', { style: { fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' } }, 
-      '스레드: ' + (thread.thread_id || '') + ' · ' + (thread.name || '')
-    ),
-    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' } }, [
+  // 좌측 사이드바: 메타 + 날짜/시간/방향/발신자/수신자
+  const sidebar = el('div', { class: 'simple-log-sidebar' }, [
+    el('div', { class: 'simple-log-meta' }, '스레드: ' + (thread.thread_id || '') + ' · ' + (thread.name || '')),
+    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
       fieldRow('날짜', f.date),
       fieldRow('시간', f.time)
     ]),
     entryType === '통화' ? fieldRow('통화 방향', f.direction) : null,
-    fieldRow(entryType === '통화' ? '상대방 (stakeholder ID)' : '발신자 / 작성자', f.from_id, 'stakeholder ID (예: S001) — 비워둘 수도 있음'),
-    entryType !== '메모' ? fieldRow('상대방 (수신자) — 콤마 구분', f.to_ids) : null,
+    fieldRow(entryType === '통화' ? '상대방 (stakeholder ID)' : '발신자 / 작성자', f.from_id, '예: S101 — 비워둘 수도 있음'),
+    entryType !== '메모' ? fieldRow('상대방 (수신자) — 콤마 구분', f.to_ids) : null
+  ].filter(Boolean));
+  
+  // 우측 메인: 제목 / 한 줄 요약 / 본문
+  const main = el('div', { class: 'simple-log-main' }, [
     fieldRow('제목', f.subject),
     fieldRow('한 줄 요약', f.oneliner, '핵심 흐름 영역에 보임'),
-    fieldRow('본문 / 메모', f.summary),
+    fieldRow('본문 / 메모', f.summary)
+  ]);
+  
+  const body = el('div', { class: 'simple-log-form-wrap' }, [
+    sidebar,
+    main,
     stkDatalist
-  ].filter(Boolean));
+  ]);
   
   const save = async (button) => {
     const data = {
@@ -8096,12 +8353,17 @@ function openMailEditForm(thread, existingLog, options) {
     table.appendChild(thead);
     
     const tbody = el('tbody', {});
+    let dupCount = 0;
     parsedMails.forEach((p, i) => {
       const m = p.m;
       const warnings = [];
       if (!p.fromStk && m.from_email) warnings.push('발신자 미등록');
       if (!p.fromStk && !m.from_email) warnings.push('발신자 없음');
       if (!m.date) warnings.push('날짜 없음');
+      if (p.duplicate) {
+        warnings.push('⚠️ 이미 등록됨');
+        dupCount++;
+      }
       
       const cb = el('input', { 
         type: 'checkbox',
@@ -8114,16 +8376,32 @@ function openMailEditForm(thread, existingLog, options) {
         ? (p.fromStk.name_ko || p.fromStk.name_en || '?') 
         : (m.from_name || m.from_email || '?');
       
-      tbody.appendChild(el('tr', {}, [
+      const tr = el('tr', { class: p.duplicate ? 'parse-dup-row' : '' }, [
         el('td', { class: 'checkbox-cell' }, [cb]),
         el('td', { class: 'date-cell' }, (m.date || '?') + (m.time ? ' ' + m.time.slice(0,5) : '')),
         el('td', { class: 'from-cell' }, fromLabel),
         el('td', { class: 'subj-cell', title: m.subject || '' }, m.subject || '(제목 없음)'),
         el('td', { class: warnings.length ? 'warn-cell' : '' }, warnings.join(', ') || '✓')
-      ]));
+      ]);
+      tbody.appendChild(tr);
     });
     table.appendChild(tbody);
     parseResultArea.appendChild(table);
+    
+    // 중복 안내 메시지
+    if (dupCount > 0) {
+      parseResultArea.appendChild(el('div', {
+        style: {
+          marginTop: '8px',
+          padding: '8px 12px',
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          borderRadius: '4px',
+          fontSize: '11.5px',
+          color: '#92400e'
+        }
+      }, '⚠️ ' + dupCount + '건이 이미 등록된 메일과 중복됩니다 (자동으로 체크 해제됨)'));
+    }
   };
   
   parseTextarea.addEventListener('input', () => {
@@ -8137,14 +8415,20 @@ function openMailEditForm(thread, existingLog, options) {
     try {
       const segments = splitMailThread(text);
       const mails = segments.map(s => parseMailText(s)).filter(m => m && (m.subject || m.from_email));
-      parsedMails = mails.map(m => ({
-        m,
-        fromStk: m.from_email ? findStakeholderByEmail(m.from_email) : null,
-        toStks: (m.to_emails || []).map(e => findStakeholderByEmail(e)).filter(Boolean),
-        ccStks: (m.cc_emails || []).map(e => findStakeholderByEmail(e)).filter(Boolean),
-        attaches: extractAttachmentFilenames(segments[mails.indexOf(m)] || '')
-      }));
-      parsedSelections = parsedMails.map(() => true);  // 기본 전체 선택
+      parsedMails = mails.map(m => {
+        const fromStk = m.from_email ? findStakeholderByEmail(m.from_email) : null;
+        const toStks = (m.to_emails || []).map(e => findStakeholderByEmail(e)).filter(Boolean);
+        const ccStks = (m.cc_emails || []).map(e => findStakeholderByEmail(e)).filter(Boolean);
+        // 중복 감지 — 이 스레드에 이미 같은 메일이 있나?
+        const duplicateLog = findDuplicateLog(m, fromStk, toStks, thread && thread.thread_id);
+        return {
+          m, fromStk, toStks, ccStks,
+          attaches: extractAttachmentFilenames(segments[mails.indexOf(m)] || ''),
+          duplicate: duplicateLog  // 중복이면 그 log 객체, 아니면 null
+        };
+      });
+      // 기본 선택: 중복 아닌 것만 체크
+      parsedSelections = parsedMails.map(p => !p.duplicate);
       renderParseResults();
     } catch (err) {
       parseResultArea.innerHTML = '';
@@ -10035,16 +10319,41 @@ function renderBrandsDetailView(root) {
     if (matchedThreads.length > 0) {
       detailEl.appendChild(el('div', { class: 'brand-list-section' }, [
         el('h4', { class: 'brand-section-title' }, '📨 관련 메일스레드 (' + matchedThreads.length + ')'),
-        el('div', { class: 'brand-thread-list' }, matchedThreads.map(t =>
-          el('div', {
+        el('div', { class: 'brand-thread-list' }, matchedThreads.map(t => {
+          // 그 스레드의 가장 최신 log 찾기 (date + time DESC)
+          const threadLogs = (STATE.data.logs || [])
+            .filter(l => l.thread_id === t.thread_id)
+            .sort((a, b) => {
+              const ak = (b.date || '') + ' ' + (b.time || '');
+              const bk = (a.date || '') + ' ' + (a.time || '');
+              return ak.localeCompare(bk);
+            });
+          const latest = threadLogs[0];
+          
+          // 최신 요약 라인 만들기
+          let latestLine = null;
+          if (latest && latest.oneliner && latest.oneliner.trim()) {
+            latestLine = el('div', { class: 'brand-thread-latest' }, [
+              fmtDateShort(latest.date),
+              el('span', { class: 'brand-thread-latest-type' }, '[' + (latest.type || '메일') + ']'),
+              latest.oneliner.trim()
+            ]);
+          } else {
+            latestLine = el('div', { class: 'brand-thread-latest empty' }, '최신 한 줄 요약 없음');
+          }
+          
+          return el('div', {
             class: 'brand-thread-item',
             onclick: () => openMailThreadDetail(t)
           }, [
-            el('span', { class: 'brand-thread-id' }, t.thread_id || ''),
-            el('span', { class: 'brand-thread-name' }, t.name || '(이름 없음)'),
-            t.current_stage ? el('span', { class: 'brand-thread-stage' }, t.current_stage) : null
-          ].filter(Boolean))
-        ))
+            el('div', { class: 'brand-thread-row1' }, [
+              el('span', { class: 'brand-thread-id' }, t.thread_id || ''),
+              el('span', { class: 'brand-thread-name' }, t.name || '(이름 없음)'),
+              t.current_stage ? el('span', { class: 'brand-thread-stage' }, t.current_stage) : null
+            ].filter(Boolean)),
+            latestLine
+          ]);
+        }))
       ]));
     }
     
