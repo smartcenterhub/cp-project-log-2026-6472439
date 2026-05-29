@@ -37,6 +37,19 @@
     --primary-bg: rgba(79, 70, 229, 0.08);
     --accent: #0891b2;        /* 청록 */
     --accent-bg: rgba(8, 145, 178, 0.08);
+    
+    /* 달력 컴포넌트 전용 변수 */
+    --ac: #4f46e5;
+    --gr: #22c55e;
+    --bd: rgba(0, 0, 0, 0.10);
+    --gb: #FAFAFC;
+    --gs: #F4F4F8;
+    --tx: #1a1a1a;
+    --t1: #2a2a2a;
+    --t2: #555;
+    --t3: #888;
+    --t4: #aaa;
+    --rl: 8px;
 
     /* 상태 (톤다운) */
     --ok: #4d7a55;
@@ -564,8 +577,7 @@
     position: fixed;
     inset: 0;
     background: rgba(20, 24, 36, 0.32);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    /* backdrop-filter 제거 — popup(fixed) containing block 영향 막음 */
     z-index: 100;
     display: none;
     align-items: flex-start;
@@ -576,8 +588,7 @@
   .modal-overlay.show { display: flex; }
   .modal {
     background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    /* backdrop-filter 제거 — popup(fixed) containing block 영향 막음 */
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     width: 100%;
@@ -609,6 +620,9 @@
   .modal-body {
     padding: 18px 20px;
     overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1 1 auto;
+    min-height: 0;
   }
   .modal-footer {
     padding: 12px 20px;
@@ -1437,6 +1451,8 @@
     border-radius: var(--radius-sm);
     padding: 0;
     transition: border-color .14s, box-shadow .14s;
+    width: 100%;
+    max-width: 180px;  /* 고정 폭 — 텍스트 길이와 무관하게 일정 */
   }
   .cal-input-row:hover { border-color: var(--text-disabled, #c4c4d0); }
   .cal-input-row.active {
@@ -1480,17 +1496,23 @@
   .cal-input-clear:hover { color: #e63946; }
 
   .cal-popup {
-    position: absolute;
-    top: calc(100% + 4px);
+    position: fixed;  /* fixed — viewport 기준이라 모달 overflow 영향 안 받음 */
+    top: 0;
     left: 0;
     background: white;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
     padding: 10px;
-    z-index: 300;
+    z-index: 10010;
     width: 264px;
     user-select: none;
+  }
+  /* cal-popup + cal-inline 같이 쓸 때 = 가이드 디자인 적용 */
+  .cal-popup.cal-inline {
+    padding: 0;
+    width: 252px;
+    background: var(--gb);
   }
   .cal-popup.flip {
     top: auto;
@@ -2788,6 +2810,402 @@
   .brand-status-cell.tone-na { background: rgba(0, 0, 0, 0.04); color: var(--text-faint); }
   .brand-status-cell.tone-empty { color: var(--text-faint); font-style: italic; padding: 0; background: none; }
   
+  /* ───── 단계별 비교 새 표 (한눈 + 9컬럼 + 가로 스크롤) ───── */
+  .brand-process-scroll-wrap {
+    overflow-x: auto;
+    overflow-y: visible;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 100%;
+  }
+  .brand-process-table {
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+    /* 최소 폭: 브랜드(180) + 라운드(48) + 9*160 */
+    min-width: calc(180px + 48px + 9 * 160px);
+  }
+  .brand-process-table th {
+    background: rgba(0, 0, 0, 0.025);
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 10.5px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .brand-process-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .brand-process-table tr:last-child td { border-bottom: none; }
+  .brand-process-table tr.brand-row:hover td {
+    background: rgba(79, 70, 229, 0.03);
+  }
+  .brand-process-table .col-brand { width: 180px; min-width: 180px; }
+  .brand-process-table .col-round { width: 48px; min-width: 48px; text-align: center; }
+  .brand-process-table .col-process { width: 160px; min-width: 160px; }
+  /* 단계별 비교 표 — divider 컬럼 (좁은 빈 구분선) */
+  .brand-process-table .col-divider {
+    width: 12px;
+    min-width: 12px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.025);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+  }
+  /* 스레드 사이드바 — divider (구분선 + 선택적 헤더) */
+  .bp-side-divider {
+    margin: 14px 0 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 12px;
+  }
+  .bp-side-divider:first-child {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+  .bp-side-divider-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  /* sticky 브랜드 컬럼 (가로 스크롤 시 고정) */
+  .brand-process-table .sticky-col {
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 2;
+    box-shadow: 1px 0 0 var(--border);
+    cursor: pointer;
+  }
+  .brand-process-table thead .sticky-col { 
+    background: rgb(248, 248, 250);
+    z-index: 3;
+  }
+  .brand-process-table tr.brand-row:hover .sticky-col {
+    background: rgb(250, 249, 255);
+  }
+  
+  /* 라운드 칩 */
+  .round-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .round-r1 { background: rgba(239, 68, 68, 0.12);  color: #b91c1c; }
+  .round-r2 { background: rgba(251, 146, 60, 0.13); color: #c2410c; }
+  .round-r3 { background: rgba(251, 191, 36, 0.16); color: #92400e; }
+  .round-r4 { background: rgba(34, 197, 94, 0.13);  color: #15803d; }
+  .round-r5 { background: rgba(20, 184, 166, 0.13); color: #0f766e; }
+  .round-r6 { background: rgba(59, 130, 246, 0.13); color: #1d4ed8; }
+  .round-r7 { background: rgba(168, 85, 247, 0.13); color: #6b21a8; }
+  .round-gray { background: rgba(156, 163, 175, 0.13); color: #6b7280; }
+  
+  /* 프로세스 셀 */
+  .process-cell {
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .process-cell:hover {
+    background: rgba(79, 70, 229, 0.05) !important;
+  }
+  .process-status-chip {
+    display: inline-block;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .process-cell-text {
+    font-size: 11.5px;
+    color: var(--text);
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-all;
+    /* 2줄 제한 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .process-cell-meta {
+    font-size: 10.5px;
+    color: var(--text-faint);
+    margin-top: 3px;
+    font-family: ui-monospace, monospace;
+  }
+  .process-cell-empty {
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+  
+  /* ───── 프로세스 편집 모달 ───── */
+  .bp-edit-form {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+  }
+  
+  /* ━━━━━━ Process Popover (단계별 비교 표 셀 클릭) ━━━━━━ */
+  .bp-popover {
+    position: fixed;
+    width: 380px;
+    background: white;
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+    padding: 14px 16px;
+    z-index: 10010;
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+  /* 말꼬리 — popover가 셀 아래에 있을 때 (위로 향함) */
+  .bp-popover.below::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: var(--arrow-left, 30px);
+    width: 14px;
+    height: 14px;
+    background: white;
+    transform: rotate(45deg);
+    border-left: 0.5px solid var(--border-strong);
+    border-top: 0.5px solid var(--border-strong);
+  }
+  /* 말꼬리 — popover가 셀 위에 있을 때 (아래로 향함) */
+  .bp-popover.above::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: var(--arrow-left, 30px);
+    width: 14px;
+    height: 14px;
+    background: white;
+    transform: rotate(45deg);
+    border-right: 0.5px solid var(--border-strong);
+    border-bottom: 0.5px solid var(--border-strong);
+  }
+  
+  .bp-popover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .bp-popover-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .bp-popover-close {
+    font-size: 18px;
+    color: var(--text-faint);
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.1s;
+    border: none;
+    background: transparent;
+  }
+  .bp-popover-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--text);
+  }
+  
+  .bp-popover-section-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 8px 0 5px;
+  }
+  
+  .bp-popover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border);
+  }
+  .bp-popover-delete {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--err);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: none;
+  }
+  .bp-popover-delete:hover {
+    background: rgba(220, 38, 38, 0.08);
+  }
+  .bp-popover-actions { display: flex; gap: 6px; }
+  .bp-popover-btn {
+    font-size: 11.5px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 0.5px solid var(--border-strong);
+    background: white;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .bp-popover-btn:hover { background: rgba(0, 0, 0, 0.03); }
+  .bp-popover-btn.primary {
+    background: var(--accent, #4f46e5);
+    color: white;
+    border-color: var(--accent, #4f46e5);
+  }
+  .bp-popover-btn.primary:hover { filter: brightness(0.95); }
+  .bp-status-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .bp-status-chip {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .bp-status-chip:hover { opacity: 0.85; }
+  .bp-status-chip.active { font-weight: 700; }
+  
+  .bp-row-grid {
+    display: grid;
+    grid-template-columns: 1fr 180px 100px;
+    gap: 12px;
+  }
+  
+  .bp-owner-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-faint);
+  }
+  /* 담당자 채워진 경우 — 가로 확장 + 이름 표시 */
+  .bp-owner-btn.has-owner {
+    width: auto;
+    padding: 0 10px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .bp-owner-btn:hover { background: rgba(0,0,0,0.02); }
+  .bp-owner-label { color: var(--text); }
+  .bp-owner-label:empty { display: none; }
+  
+  /* 자세히 토글 (담당자/날짜/시간 묶음) */
+  .bp-detail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    cursor: pointer;
+    user-select: none;
+    padding: 5px 0;
+    margin-top: 6px;
+    font-weight: 600;
+  }
+  .bp-detail-toggle:hover { color: var(--text-muted); }
+  .bp-detail-toggle-arrow {
+    display: inline-block;
+    transition: transform 0.15s;
+    font-size: 10px;
+  }
+  .bp-detail-toggle.open .bp-detail-toggle-arrow { transform: rotate(90deg); }
+  
+  .bp-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 6px;
+  }
+  .bp-checklist-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .bp-checklist-row input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent, #4f46e5);
+    cursor: pointer;
+  }
+  .bp-checklist-text {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12.5px;
+    background: white;
+  }
+  .bp-checklist-text:focus { outline: none; border-color: var(--accent); }
+  .bp-checklist-del {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    opacity: 0.5;
+    font-size: 13px;
+  }
+  .bp-checklist-del:hover { opacity: 1; background: rgba(220, 38, 38, 0.08); }
+  .bp-checklist-add {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    width: 100%;
+  }
+  .bp-checklist-add:hover {
+    background: rgba(79, 70, 229, 0.04);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  
   /* 인라인 편집 가능 영역 (브랜드 페이지) */
   .brand-editable {
     cursor: pointer;
@@ -3273,7 +3691,7 @@
   /* ─── 브랜드 페이지 끝 ─── */
   .mt-detail-layout {
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 240px 1fr 260px;
     gap: 0;
     margin: -18px -20px;
     min-height: calc(82vh - 110px);
@@ -3284,11 +3702,137 @@
     border-right: 1px solid var(--border);
     overflow-y: auto;
   }
+  .mt-detail-right-sidebar {
+    padding: 18px 14px;
+    background: rgba(0, 0, 0, 0.018);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    font-size: 12.5px;
+  }
   .mt-detail-main {
     padding: 18px 22px;
     overflow-y: auto;
     min-width: 0;
   }
+  /* 우측 사이드바: 단계별 진행 */
+  .bp-side-header {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .bp-side-item {
+    padding: 9px 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: white;
+    border: 1px solid var(--border-soft, rgba(0,0,0,0.06));
+    transition: border-color 0.12s, box-shadow 0.12s;
+  }
+  .bp-side-item:hover {
+    border-color: var(--border-strong);
+  }
+  .bp-side-item.is-issue { border-left: 3px solid #dc2626; }
+  .bp-side-item.is-done { opacity: 0.7; }
+  .bp-side-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .bp-side-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .bp-side-chip {
+    font-size: 10.5px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: filter 0.1s;
+    white-space: nowrap;
+  }
+  .bp-side-chip:hover { filter: brightness(0.95); }
+  .bp-side-memo {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    line-height: 1.4;
+    cursor: text;
+    padding: 3px 4px;
+    border-radius: 4px;
+    min-height: 18px;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .bp-side-memo:hover { background: rgba(0,0,0,0.03); }
+  .bp-side-memo.is-placeholder { color: var(--text-muted, rgba(0,0,0,0.3)); font-style: italic; }
+  .bp-side-memo-edit {
+    width: 100%;
+    border: 1px solid var(--accent, #4f46e5);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 11.5px;
+    font-family: inherit;
+    line-height: 1.4;
+    resize: vertical;
+    min-height: 40px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  /* 상태 dropdown */
+  .bp-side-status-pop {
+    position: fixed;
+    z-index: 10020;
+    background: white;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    padding: 4px;
+    min-width: 110px;
+  }
+  .bp-side-status-opt {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 4px;
+    margin: 1px 0;
+  }
+  .bp-side-status-opt:hover { background: rgba(0,0,0,0.04); }
+  /* 완료 토글 */
+  .bp-side-done-toggle {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    cursor: pointer;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    font-weight: 600;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .bp-side-done-toggle:hover { color: var(--text); }
+  .bp-side-done-arrow {
+    transition: transform 0.15s;
+  }
+  .bp-side-done-toggle.open .bp-side-done-arrow {
+    transform: rotate(90deg);
+  }
+  .bp-side-done-list {
+    margin-top: 8px;
+    display: none;
+  }
+  .bp-side-done-list.open { display: block; }
   .mt-sidebar-section {
     margin-bottom: 14px;
   }
@@ -3362,6 +3906,326 @@
     from { opacity: 0; transform: translateY(-4px) scale(0.98); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
+  
+  /* ───────── 달력 picker popover (단일 날짜 모드) ───────── */
+  .cal-pop {
+    position: absolute;
+    z-index: 10005;
+    animation: cal-pop-in 0.13s ease-out;
+  }
+  @keyframes cal-pop-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .cal-inline {
+    border: 1px solid var(--bd);
+    border-radius: var(--rl);
+    overflow: hidden;
+    background: var(--gb);
+    width: 252px;
+    flex-shrink: 0;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.15);
+  }
+  .cal-i-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 11px;
+    border-bottom: 1px solid var(--bd);
+    background: rgba(255, 255, 255, 0.6);
+  }
+  .cal-i-month { font-size: 12px; font-weight: 700; color: var(--tx); }
+  .cal-i-nav {
+    width: 22px; height: 22px;
+    border: 1px solid var(--bd);
+    border-radius: 5px;
+    background: var(--gs);
+    color: var(--t3);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .cal-i-nav:hover { background: rgba(79, 70, 229, 0.08); color: var(--ac); }
+  .cal-quick {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    padding: 6px 9px;
+    border-bottom: 1px solid var(--bd);
+  }
+  .cal-qb {
+    padding: 2px 7px;
+    font-size: 10.5px;
+    border: 1px solid var(--bd);
+    border-radius: 20px;
+    background: var(--gs);
+    color: var(--t3);
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .cal-qb:hover {
+    background: rgba(79, 70, 229, 0.08);
+    border-color: var(--ac);
+    color: var(--ac);
+  }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 7px 8px 4px;
+    gap: 1px;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--t4);
+    padding: 3px 0;
+  }
+  .cal-d {
+    text-align: center;
+    font-size: 11.5px;
+    padding: 5px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    user-select: none;
+    transition: background 0.08s;
+  }
+  .cal-d:hover { background: rgba(79, 70, 229, 0.09); }
+  .cal-d.c-today { color: var(--ac); font-weight: 700; }
+  .cal-d.c-ss { background: var(--ac); color: #fff; border-radius: 4px; font-weight: 700; }
+  .cal-d.c-em { cursor: default; }
+  .cal-time {
+    padding: 7px 9px;
+    background: rgba(248, 248, 255, 0.7);
+    border-top: 1px solid var(--bd);
+  }
+  .cal-tl { font-size: 9.5px; color: var(--t3); margin-bottom: 3px; }
+  .cal-tv { display: flex; align-items: center; gap: 2px; }
+  .cal-ti {
+    width: 56px; height: 26px;
+    border: 1px solid var(--bd);
+    border-radius: 5px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--tx);
+    background: var(--gs);
+    font-family: ui-monospace, monospace;
+  }
+  .cal-ti:focus { outline: none; border-color: var(--ac); background: #fff; }
+  .cal-result {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 9px;
+    border-top: 1px solid var(--bd);
+    background: rgba(79, 70, 229, 0.03);
+    flex-wrap: wrap;
+  }
+  .cal-chip {
+    font-size: 11px;
+    color: var(--ac);
+    font-weight: 600;
+    background: rgba(79, 70, 229, 0.1);
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .cal-confirm {
+    margin-left: auto;
+    padding: 3px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: var(--ac);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .cal-confirm:hover { opacity: 0.9; }
+  
+  /* 시간 4자리 입력 input */
+  .cal-ti-input {
+    text-align: center;
+    font-family: ui-monospace, monospace;
+    letter-spacing: 0.05em;
+  }
+  .cal-ti-input::placeholder {
+    color: var(--text-faint);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  
+  /* date input 옆 📅 트리거 (선택 사항) */
+  .cal-input-wrap { 
+    position: relative; 
+    display: flex; 
+    align-items: center; 
+    gap: 4px;
+  }
+  .stk-picker-popover {
+    position: absolute;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+    width: 380px;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+    z-index: 10003;
+    animation: stk-pop-in 0.12s ease-out;
+  }
+  .stk-picker-header {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px 8px 0 0;
+  }
+  .stk-picker-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .stk-picker-search input {
+    width: 100%;
+    font-size: 12.5px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .stk-picker-search input:focus { border-color: var(--accent, #4f46e5); }
+  .stk-picker-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+    min-height: 120px;
+    max-height: 320px;
+  }
+  .stk-picker-group-header {
+    padding: 6px 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.025);
+    user-select: none;
+  }
+  .stk-picker-group-header:hover { background: rgba(0, 0, 0, 0.05); }
+  .stk-picker-group-toggle {
+    font-size: 9px;
+    transition: transform 0.15s;
+    color: var(--text-faint);
+  }
+  .stk-picker-group.collapsed .stk-picker-list-items { display: none; }
+  .stk-picker-group.collapsed .stk-picker-group-toggle { transform: rotate(-90deg); }
+  
+  /* 그룹 헤더 전체 선택 버튼 (다중 모드만) */
+  .stk-picker-group-select-all {
+    font-size: 10px;
+    padding: 2px 8px;
+    border: 1px solid rgba(79, 70, 229, 0.4);
+    border-radius: 3px;
+    background: transparent;
+    color: var(--accent, #4f46e5);
+    cursor: pointer;
+    transition: all 0.12s;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .stk-picker-group-select-all:hover {
+    background: rgba(79, 70, 229, 0.1);
+    border-color: var(--accent, #4f46e5);
+  }
+  .stk-picker-group-select-all.partial {
+    background: rgba(79, 70, 229, 0.15);
+    border-color: var(--accent, #4f46e5);
+  }
+  .stk-picker-group-select-all.all {
+    background: var(--accent, #4f46e5);
+    color: white;
+    border-color: var(--accent, #4f46e5);
+  }
+  .stk-picker-group-count {
+    color: var(--text-faint);
+    font-weight: 600;
+  }
+  .stk-picker-group-count.partial { color: var(--accent, #4f46e5); }
+  .stk-picker-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 14px;
+    cursor: pointer;
+    font-size: 12.5px;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .stk-picker-item:hover { background: rgba(79, 70, 229, 0.06); }
+  .stk-picker-item input { flex-shrink: 0; cursor: pointer; }
+  .stk-picker-item-info { flex: 1; min-width: 0; }
+  .stk-picker-item-name { font-weight: 500; line-height: 1.3; }
+  .stk-picker-item-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; }
+  .stk-picker-item-email {
+    font-size: 10px;
+    color: var(--text-faint);
+    font-family: ui-monospace, monospace;
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .stk-picker-footer {
+    padding: 9px 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 0 0 8px 8px;
+  }
+  .stk-picker-count {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .stk-picker-actions { display: flex; gap: 6px; }
+  
+  /* 폼 안 발신자/수신자 필드 옆 작은 선택 버튼 */
+  .stk-pick-btn {
+    background: rgba(79, 70, 229, 0.08);
+    color: var(--accent, #4f46e5);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .stk-pick-btn:hover {
+    background: rgba(79, 70, 229, 0.15);
+    border-color: rgba(79, 70, 229, 0.5);
+  }
+  .stk-pick-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .stk-pick-wrap .mp-input { flex: 1; }
   .stk-popover-name {
     font-size: 16px;
     font-weight: 600;
@@ -3789,8 +4653,8 @@
     font-size: 26px;
     font-weight: 300;
     cursor: pointer;
-    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.4);
-    transition: all 0.18s;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    transition: background 0.15s ease, box-shadow 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -3798,10 +4662,46 @@
     line-height: 1;
   }
   .mt-fab-add:hover {
-    transform: scale(1.08);
-    box-shadow: 0 8px 22px rgba(79, 70, 229, 0.5);
+    box-shadow: 0 5px 14px rgba(79, 70, 229, 0.35);
+    /* scale 제거 — 차분하게 그림자만 살짝 */
   }
-  .mt-fab-add:active { transform: scale(0.95); }
+  .mt-fab-add:active {
+    /* 클릭 시 효과 거의 없음 — 그림자만 미세하게 줄어듬 */
+    box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3);
+  }
+  
+  /* Type 전환 칩 (메일/통화/미팅/메모) */
+  .type-switcher {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 14px;
+    padding: 3px;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 6px;
+  }
+  .type-switcher-chip {
+    flex: 1;
+    padding: 6px 4px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+  .type-switcher-chip:hover { background: rgba(0, 0, 0, 0.06); }
+  .type-switcher-chip.active.t-메일 { background: rgba(234, 179, 8, 0.22); color: #854d0e; }
+  .type-switcher-chip.active.t-통화 { background: rgba(34, 197, 94, 0.22); color: #15803d; }
+  .type-switcher-chip.active.t-미팅 { background: rgba(59, 130, 246, 0.22); color: #1d4ed8; }
+  .type-switcher-chip.active.t-메모 { background: rgba(236, 72, 153, 0.20); color: #be185d; }
+  .type-switcher-chip-icon { font-size: 14px; }
   
   /* 통화/미팅/메모 폼 — 좌측 사이드바 + 우측 메인 */
   .simple-log-form-wrap {
@@ -3846,11 +4746,16 @@
     background: white;
     border: 1px solid var(--border);
     border-radius: 8px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
     min-width: 180px;
     padding: 4px;
     z-index: 1100;
-    animation: stk-pop-in 0.12s ease-out;
+    animation: mt-fab-menu-in 0.15s ease-out;
+  }
+  /* 차분한 등장 — scale 없음, 미세 슬라이드만 */
+  @keyframes mt-fab-menu-in {
+    from { opacity: 0; transform: translateY(2px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
   .mt-fab-menu-item {
     display: flex;
@@ -3881,6 +4786,224 @@
   .mt-fab-menu-item-icon.type-call { background: rgba(34, 197, 94, 0.20); }
   .mt-fab-menu-item-icon.type-meeting { background: rgba(59, 130, 246, 0.20); }
   .mt-fab-menu-item-icon.type-memo { background: rgba(236, 72, 153, 0.18); }
+  .mt-fab-menu-item-icon.type-task { background: rgba(107, 114, 128, 0.22); }
+  
+  /* ─── 할 일 (task) 한 줄 카드 ─── */
+  .mt-tl-task {
+    display: grid;
+    grid-template-columns: 84px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(107, 114, 128, 0.05);
+    border: 1px solid rgba(107, 114, 128, 0.22);
+    border-radius: 6px;
+    margin: 0 -16px 8px;
+    font-size: 12.5px;
+    transition: background 0.12s;
+  }
+  .mt-tl-task:hover { background: rgba(107, 114, 128, 0.09); }
+  .mt-tl-task-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  .mt-tl-task-time-date { display: block; font-size: 11.5px; color: var(--text); }
+  .mt-tl-task-time-hm { display: block; font-size: 10.5px; color: var(--text-faint); margin-top: 1px; }
+  .mt-tl-task-content {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+  }
+  .mt-tl-task-cb {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #6b7280;
+  }
+  .mt-tl-task-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text);
+  }
+  .mt-tl-task.done .mt-tl-task-title {
+    text-decoration: line-through;
+    color: var(--text-faint);
+  }
+  .mt-tl-task.done {
+    background: rgba(107, 114, 128, 0.025);
+    border-color: rgba(107, 114, 128, 0.13);
+  }
+  .mt-tl-task-actions {
+    display: flex;
+    gap: 3px;
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .mt-tl-task:hover .mt-tl-task-actions { opacity: 1; }
+  .mt-tl-task-btn {
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mt-tl-task-btn:hover { background: rgba(0, 0, 0, 0.08); }
+  
+  /* 편집 모드 — 카드가 인라인 입력으로 변환 */
+  .mt-tl-task.editing {
+    background: rgba(107, 114, 128, 0.10);
+    border-color: rgba(107, 114, 128, 0.4);
+  }
+  .mt-tl-task.editing .mt-tl-task-actions {
+    opacity: 1;
+  }
+  
+  /* ─── 카드 사이 + 버튼 (hover 시 표시) ─── */
+  .mt-tl-add-slot {
+    position: relative;
+    height: 14px;
+    margin: -8px -16px -4px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-radius: 4px;
+  }
+  /* hover 시 가로 영역 전체 균일한 보라 배경 */
+  .mt-tl-add-slot:hover {
+    background: rgba(79, 70, 229, 0.13);
+  }
+  /* 인라인 입력이 들어가면 자동 확장 + hover/버튼 disable */
+  .mt-tl-add-slot:has(.mt-tl-task-inline) {
+    height: auto;
+    margin: 0 -16px 8px;
+    cursor: default;
+    background: transparent;
+  }
+  .mt-tl-add-slot:has(.mt-tl-task-inline):hover {
+    background: transparent;
+  }
+  .mt-tl-add-slot:has(.mt-tl-task-inline) .mt-tl-add-slot-btn { display: none; }
+  
+  .mt-tl-add-slot-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 22px;
+    height: 22px;
+    background: var(--accent, #4f46e5);
+    color: white;
+    border: 2px solid white;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 13px;
+    line-height: 1;
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+    pointer-events: none;  /* slot 클릭이 우선 */
+  }
+  .mt-tl-add-slot:hover .mt-tl-add-slot-btn {
+    opacity: 1;
+  }
+  
+  /* 인라인 task 입력 (+ 클릭 시 그 자리에 펼침) */
+  .mt-tl-task-inline {
+    display: grid;
+    grid-template-columns: 84px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 14px;
+    background: rgba(107, 114, 128, 0.08);
+    border: 1px solid rgba(107, 114, 128, 0.35);
+    border-radius: 6px;
+    margin: 0 -16px 8px;
+    animation: tl-inline-in 0.15s ease-out;
+  }
+  @keyframes tl-inline-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .mt-tl-task-inline-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+    line-height: 1.2;
+  }
+  /* 인라인 task 입력의 날짜 라벨 (편집 불가, 비우기로 초기화) */
+  .mt-tl-task-inline-datelabel {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    padding: 4px 8px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-align: center;
+    user-select: none;
+    line-height: 1.3;
+  }
+  .mt-tl-task-inline-datelabel.empty {
+    color: var(--text-faint);
+    font-weight: 400;
+    background: rgba(0, 0, 0, 0.03);
+  }
+  .mt-tl-task-inline-input {
+    flex: 1;
+    width: 100%;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 12.5px;
+    outline: none;
+    background: white;
+  }
+  .mt-tl-task-inline-input:focus { border-color: var(--accent, #4f46e5); }
+  .mt-tl-task-inline-actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .mt-tl-task-inline-hint {
+    font-size: 10px;
+    color: var(--text-faint);
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+  .mt-tl-task-inline-btn {
+    padding: 4px 8px;
+    font-size: 10.5px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .mt-tl-task-inline-btn:hover { background: rgba(0, 0, 0, 0.04); }
+  .mt-tl-task-inline-btn.primary {
+    background: var(--accent, #4f46e5);
+    color: white;
+    border-color: var(--accent, #4f46e5);
+  }
+  .mt-tl-task-inline-btn.primary:hover { opacity: 0.9; }
   
   /* 타임라인 카드 type 칩 (메일/통화/미팅/메모 모두 표시) */
   .mt-tl-type-chip {
@@ -4362,7 +5485,8 @@ const CONFIG = {
 const STATE = {
   page: 'mail_threads',
   data: {
-    brands: [], stakeholders: [], logs: [], tasks: [], documents: [], milestones: []
+    brands: [], stakeholders: [], logs: [], tasks: [], documents: [], milestones: [],
+    brand_processes: [], process_types: []
   },
   loaded: false,
   loading: false,
@@ -4372,6 +5496,73 @@ const STATE = {
 
 // 라운드 색상 매핑
 const ROUND_COLOR = ['', 'r1','r2','r3','r4','r5','r6','r7'];
+
+// 브랜드 프로세스 단계 — fallback (시트 process_types 비어있을 때만 사용)
+// 시트에 process_types 탭이 있으면 그게 우선 (동적 관리)
+const PROCESS_TYPES_FALLBACK = [
+  { id: 'model_contract',   label: '모델 계약',      group: '계약', order: 1 },
+  { id: 'brand_contract',   label: '브랜드 계약',    group: '계약', order: 2 },
+  { id: 'menu_dev',         label: '메뉴 개발',      group: '제작', order: 3 },
+  { id: 'profile_shoot',    label: '프로필 촬영',    group: '제작', order: 4 },
+  { id: 'kv_shoot',         label: '키비 촬영',      group: '제작', order: 5 },
+  { id: 'kv_food_delivery', label: '키비 음식 전달', group: '제작', order: 6 },
+  { id: 'laconz_shoot',     label: '라꼰즈 촬영',    group: '제작', order: 7 },
+  { id: 'coupang_release',  label: '쿠팡 공개',      group: '런칭', order: 8 },
+  { id: 'payment',          label: '입금 상태',      group: '정산', order: 9 }
+];
+
+// 현재 활성 process_types 가져오기 (시트 우선, 없으면 fallback)
+// divider row도 포함 — id가 'divider-'로 시작하면 isDivider: true
+function getProcessTypes() {
+  const fromSheet = STATE.data.process_types || [];
+  if (fromSheet.length > 0) {
+    return fromSheet
+      .filter(pt => {
+        const a = pt.active;
+        return a === true || a === 'TRUE' || a === 'true' || a === 1 || a === '1' || !a;
+      })
+      .map(pt => {
+        const id = String(pt.process_type_id || pt.id || '');
+        return {
+          id: id,
+          label: pt.label || '',
+          group: pt.group || '',
+          order: parseFloat(pt.order || '99'),
+          isDivider: id.toLowerCase().indexOf('divider') === 0
+        };
+      })
+      .sort((a, b) => a.order - b.order);
+  }
+  return PROCESS_TYPES_FALLBACK.map(pt => Object.assign({}, pt, { isDivider: false }));
+}
+
+// (구) 그룹별 묶기 — divider 방식으로 변경 후 사용 X (호환 유지용)
+function getProcessTypesByGroup() {
+  const types = getProcessTypes().filter(pt => !pt.isDivider);
+  const groups = [];
+  const seen = {};
+  types.forEach(pt => {
+    const g = pt.group || '기타';
+    if (!seen[g]) {
+      seen[g] = { group: g, items: [] };
+      groups.push(seen[g]);
+    }
+    seen[g].items.push(pt);
+  });
+  return groups;
+}
+
+// 하위 호환 — 옛 PROCESS_TYPES 이름 그대로 (시트 데이터 반영 안 됨, 점진적 교체 중)
+// 직접 사용 자제 — getProcessTypes() 사용 권장
+const PROCESS_TYPES = PROCESS_TYPES_FALLBACK;
+
+// 프로세스 상태 4가지
+const PROCESS_STATUSES = [
+  { id: '대기',   color: '#9ca3af', bg: 'rgba(156, 163, 175, 0.12)' },
+  { id: '진행중', color: '#1d4ed8', bg: 'rgba(59, 130, 246, 0.13)' },
+  { id: '완료',   color: '#15803d', bg: 'rgba(34, 197, 94, 0.14)' },
+  { id: '이슈',   color: '#dc2626', bg: 'rgba(220, 38, 38, 0.12)' }
+];
 
 // 페이지 정의
 const PAGES = [
@@ -4400,18 +5591,22 @@ async function apiFetchAll(forceRefresh) {
     return STATE.data;
   }
   STATE.loading = true;
-  // 진행률 가짜 진행 시작 (showLoading이 이미 호출된 경우만 시각 효과 적용됨)
-  if (typeof startInitLoadingProgress === 'function') startInitLoadingProgress();
-  // 강제 새로고침이면 상단 로딩 바 표시 (저장/삭제 후 재로드)
-  if (forceRefresh && typeof showTopLoading === 'function') {
+  // 초기 로드(데이터 한 번도 안 받은 상태)면 큰 박스 진행률만,
+  // 이미 있는 데이터 재로드(저장/삭제 후)면 상단 가는 바만 — 둘이 동시에 보이지 않게
+  const isInitialLoad = STATE.lastFetch === 0;
+  if (isInitialLoad && typeof startInitLoadingProgress === 'function') {
+    startInitLoadingProgress();
+  }
+  // 강제 새로고침 + 초기 로드 아니면 상단 가는 바만 (저장/삭제 후)
+  if (forceRefresh && !isInitialLoad && typeof showTopLoading === 'function') {
     showTopLoading(20, '데이터 새로고침 중...');
   }
   try {
-    if (forceRefresh && typeof showTopLoading === 'function') {
+    if (forceRefresh && !isInitialLoad && typeof showTopLoading === 'function') {
       showTopLoading(50, '데이터 새로고침 중...');
     }
     const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=all');
-    if (forceRefresh && typeof showTopLoading === 'function') {
+    if (forceRefresh && !isInitialLoad && typeof showTopLoading === 'function') {
       showTopLoading(80, '데이터 새로고침 중...');
     }
     const json = await res.json();
@@ -4420,15 +5615,15 @@ async function apiFetchAll(forceRefresh) {
     augmentStakeholderData();  // related_brand_id / contact_role 자동 추론
     STATE.loaded = true;
     STATE.lastFetch = now;
-    // 완료 — 95% → 100% 점프
-    if (typeof finishInitLoading === 'function') finishInitLoading();
-    if (forceRefresh && typeof showTopLoading === 'function') {
+    // 초기 로드 완료 — 95% → 100% 점프
+    if (isInitialLoad && typeof finishInitLoading === 'function') finishInitLoading();
+    if (forceRefresh && !isInitialLoad && typeof showTopLoading === 'function') {
       showTopLoading(100, '✓ 완료');
       setTimeout(() => { if (typeof hideTopLoading === 'function') hideTopLoading(); }, 250);
     }
     return STATE.data;
   } catch (err) {
-    if (forceRefresh && typeof hideTopLoading === 'function') hideTopLoading();
+    if (forceRefresh && !isInitialLoad && typeof hideTopLoading === 'function') hideTopLoading();
     throw err;
   } finally {
     STATE.loading = false;
@@ -4493,14 +5688,61 @@ function augmentStakeholderData() {
   });
 }
 
+// 시트별 ID 컬럼 이름 매핑 (낙관적 업데이트용)
+const SHEET_ID_COLS = {
+  brands: 'brand_id',
+  stakeholders: 'stakeholder_id',
+  logs: 'log_id',
+  tasks: 'task_id',
+  documents: 'doc_id',
+  milestones: 'milestone_id',
+  timeline_tasks: 'tt_id',
+  mail_threads: 'thread_id',
+  brand_processes: 'process_id'
+};
+
 async function apiCreate(sheet, data) {
-  return apiPost({ action: 'create', sheet, data });
+  const res = await apiPost({ action: 'create', sheet, data });
+  // 낙관적 업데이트 — 로컬 STATE에 즉시 반영
+  if (res && res.data && STATE.data[sheet]) {
+    STATE.data[sheet].push(res.data);
+    if (sheet === 'stakeholders' && typeof augmentStakeholderData === 'function') {
+      augmentStakeholderData();
+    }
+  }
+  return res;
 }
+
 async function apiUpdate(sheet, id, data) {
-  return apiPost({ action: 'update', sheet, id, data });
+  const res = await apiPost({ action: 'update', sheet, id, data });
+  // 낙관적 업데이트 — 로컬 STATE에 즉시 반영
+  if (STATE.data[sheet]) {
+    const idCol = SHEET_ID_COLS[sheet] || (sheet.replace(/s$/, '') + '_id');
+    const row = STATE.data[sheet].find(r => String(r[idCol]) === String(id));
+    if (row) {
+      Object.assign(row, data);
+      if (sheet === 'stakeholders' && typeof augmentStakeholderData === 'function') {
+        augmentStakeholderData();
+      }
+    }
+  }
+  return res;
 }
+
 async function apiDelete(sheet, id) {
-  return apiPost({ action: 'delete', sheet, id });
+  const res = await apiPost({ action: 'delete', sheet, id });
+  // 낙관적 업데이트 — 로컬 STATE에서 제거
+  if (STATE.data[sheet]) {
+    const idCol = SHEET_ID_COLS[sheet] || (sheet.replace(/s$/, '') + '_id');
+    const idx = STATE.data[sheet].findIndex(r => String(r[idCol]) === String(id));
+    if (idx >= 0) {
+      STATE.data[sheet].splice(idx, 1);
+      if (sheet === 'stakeholders' && typeof augmentStakeholderData === 'function') {
+        augmentStakeholderData();
+      }
+    }
+  }
+  return res;
 }
 
 async function apiPost(body) {
@@ -4564,9 +5806,35 @@ function calFmtDisplay(ds) {
 
 function calNormDs(v) {
   if (!v) return null;
+  
+  // UTC ISO ('...Z') — Date 변환 후 로컬 시간 (timezone 정확)
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T.*Z$/.test(v)) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    }
+  }
+  
+  // 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss' (timezone 없음, 로컬 간주)
   const s = String(v);
   const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  
+  // Date 객체 또는 기타 (toString이 ISO 아닐 때)
+  try {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + mo + '-' + dd;
+    }
+  } catch {}
+  
+  return null;
 }
 
 // 모든 달력 닫기
@@ -4760,37 +6028,31 @@ function calRender(key) {
   
   // 팝업
   if (st.open) {
-    html += `<div class="cal-popup">`;
-    html += `<div class="cal-head">`;
-    html += `<button type="button" class="cal-head-nav" data-cal-action="prev" tabindex="-1">‹</button>`;
-    html += `<span class="cal-head-month">${st.vY}년 ${st.vM + 1}월</span>`;
-    html += `<button type="button" class="cal-head-nav" data-cal-action="next" tabindex="-1">›</button>`;
-    html += `</div>`;
+    html += `<div class="cal-popup cal-inline">`;
     html += `<div class="cal-quick">`;
-    html += `<button type="button" class="cal-quick-btn" data-cal-action="quick" data-quick="today" tabindex="-1">오늘</button>`;
-    html += `<button type="button" class="cal-quick-btn" data-cal-action="quick" data-quick="tomorrow" tabindex="-1">내일</button>`;
-    html += `<button type="button" class="cal-quick-btn" data-cal-action="quick" data-quick="plus7" tabindex="-1">+7일</button>`;
+    html += `<button type="button" class="cal-qb" data-cal-action="quick" data-quick="today" tabindex="-1">오늘</button>`;
+    html += `<button type="button" class="cal-qb" data-cal-action="quick" data-quick="tomorrow" tabindex="-1">내일</button>`;
+    html += `<button type="button" class="cal-qb" data-cal-action="quick" data-quick="plus7" tabindex="-1">+7일</button>`;
     html += `</div>`;
-    html += `<div class="cal-weekdays">`;
-    WEEKDAYS_KO.forEach((w, i) => {
-      const cls = i === 0 ? 'sun' : (i === 6 ? 'sat' : '');
-      html += `<div class="cal-weekday ${cls}">${w}</div>`;
-    });
+    html += `<div class="cal-i-head">`;
+    html += `<button type="button" class="cal-i-nav" data-cal-action="prev" tabindex="-1">‹</button>`;
+    html += `<span class="cal-i-month">${st.vY}년 ${st.vM + 1}월</span>`;
+    html += `<button type="button" class="cal-i-nav" data-cal-action="next" tabindex="-1">›</button>`;
     html += `</div>`;
     html += `<div class="cal-grid">`;
+    WEEKDAYS_KO.forEach(w => {
+      html += `<div class="cal-dow">${w}</div>`;
+    });
     for (let i = 0; i < 42; i++) {
       const dayNum = i - startWd + 1;
       if (dayNum < 1 || dayNum > daysInMonth) {
-        html += `<button type="button" class="cal-day empty" disabled tabindex="-1"></button>`;
+        html += `<div class="cal-d c-em"></div>`;
       } else {
         const ds = calDs(st.vY, st.vM, dayNum);
-        const wd = (startWd + dayNum - 1) % 7;
-        let cls = 'cal-day';
-        if (wd === 0) cls += ' sun';
-        if (wd === 6) cls += ' sat';
-        if (ds === todayDs) cls += ' today';
-        if (ds === st.sel) cls += ' sel';
-        html += `<button type="button" class="${cls}" data-cal-action="select" data-date="${ds}" tabindex="-1">${dayNum}</button>`;
+        let cls = 'cal-d';
+        if (ds === todayDs) cls += ' c-today';
+        if (ds === st.sel) cls += ' c-ss';
+        html += `<div class="${cls}" data-cal-action="select" data-date="${ds}">${dayNum}</div>`;
       }
     }
     html += `</div>`;
@@ -4894,19 +6156,22 @@ function calRender(key) {
     wrap._calBound = true;
   }
   
-  // input focus / 값 / 커서 복원
+  // input focus 복원 (커서 위치만, value는 innerHTML에서 그린 새 값 그대로)
+  // ← oldInputValue로 덮어쓰면 calSelect 후 input이 빈 값으로 돌아가는 버그
   if (wasInputFocused) {
     const newInput = wrap.querySelector('.cal-input');
     if (newInput) {
-      newInput.value = oldInputValue;
       newInput.focus();
-      if (oldCursor != null) {
-        try { newInput.setSelectionRange(oldCursor, oldCursor); } catch (e) {}
-      }
+      // 커서는 끝으로 (옛 커서 위치는 옛 value 길이 기준이라 의미 없음)
+      try { 
+        const len = newInput.value.length;
+        newInput.setSelectionRange(len, len); 
+      } catch (e) {}
     }
   }
   
-  // 팝업이 화면 아래로 벗어나면 위로 뒤집기
+  // popup이 fixed → cal-input 위치 기준 인라인 top/left 설정
+  // (모달 overflow에 영향 안 받고 viewport 기준)
   if (st.open) {
     const popup = wrap.querySelector('.cal-popup');
     if (popup) {
@@ -4914,12 +6179,57 @@ function calRender(key) {
       if (triggerEl) {
         const rect = triggerEl.getBoundingClientRect();
         const popupHeight = 320;
+        const popupWidth = 264;
+        // 아래에 충분한 공간 있으면 아래로, 없으면 위로 flip
+        let top = rect.bottom + 4;
         if (rect.bottom + popupHeight > window.innerHeight - 16) {
-          popup.classList.add('flip');
+          top = rect.top - popupHeight - 4;
         }
+        let left = rect.left;
+        // 오른쪽 viewport 넘으면 왼쪽으로 조정
+        if (left + popupWidth > window.innerWidth - 16) {
+          left = window.innerWidth - popupWidth - 16;
+        }
+        if (left < 8) left = 8;
+        popup.style.top = top + 'px';
+        popup.style.left = left + 'px';
       }
     }
   }
+}
+
+// 글로벌 scroll listener — 모달 안 스크롤 시 popup 위치 따라감
+// (cal-popup이 fixed이므로 모달 스크롤 시 위치 안 따라가는 문제 해결)
+if (typeof window !== 'undefined' && !window._calScrollBound) {
+  window._calScrollBound = true;
+  const updateAllOpenPopups = () => {
+    for (const key in CAL_STATE) {
+      const st = CAL_STATE[key];
+      if (!st || !st.open) continue;
+      const wrap = document.getElementById('cal-wrap-' + key);
+      if (!wrap) continue;
+      const popup = wrap.querySelector('.cal-popup');
+      const triggerEl = wrap.querySelector('.cal-input-row');
+      if (!popup || !triggerEl) continue;
+      const rect = triggerEl.getBoundingClientRect();
+      const popupHeight = 320;
+      const popupWidth = 264;
+      let top = rect.bottom + 4;
+      if (rect.bottom + popupHeight > window.innerHeight - 16) {
+        top = rect.top - popupHeight - 4;
+      }
+      let left = rect.left;
+      if (left + popupWidth > window.innerWidth - 16) {
+        left = window.innerWidth - popupWidth - 16;
+      }
+      if (left < 8) left = 8;
+      popup.style.top = top + 'px';
+      popup.style.left = left + 'px';
+    }
+  };
+  // capture: true로 모든 scroll 이벤트 잡음 (모달 안 스크롤 포함)
+  document.addEventListener('scroll', updateAllOpenPopups, true);
+  window.addEventListener('resize', updateAllOpenPopups);
 }
 
 // 폼 필드 헬퍼: input[type=date] 대신 달력 컴포넌트 사용
@@ -4940,6 +6250,125 @@ function calField(label, name, opts = {}, registry) {
   if (registry) {
     registry.push({ key: uid, opts: { value: opts.value, inputId } });
   }
+  return wrap;
+}
+
+// ─── 시간 4자리 입력 → "HH:MM" 자동 변환 ─────────────────
+// 가이드 spec:
+//   "0"     → "00:00"
+//   "9"     → "09:00"
+//   "930"   → "09:30"
+//   "0930"  → "09:30"
+//   "23:59" → "23:59"
+//   ""      → 빈 값 그대로
+function parseTime4(raw) {
+  if (raw == null) return null;
+  let s = String(raw).replace(/[^\d]/g, '');  // 숫자만
+  if (!s) return '';  // 빈 값 허용
+  if (s.length === 1) s = '0' + s + '00';
+  else if (s.length === 2) s = s + '00';
+  else if (s.length === 3) s = '0' + s;
+  else if (s.length > 4) s = s.substring(0, 4);
+  let h = parseInt(s.substring(0, 2), 10);
+  let m = parseInt(s.substring(2, 4), 10);
+  if (isNaN(h) || h > 23) h = 0;
+  if (isNaN(m) || m > 59) m = 0;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+// 시간 입력 컴포넌트 — input type="text"로 보이지만 blur 시 자동 정규화
+// 사용: const tEl = makeTimeInput({ value: '09:30' });
+//       tEl.value (HH:MM 형식으로 자동 정규화된 값)
+function makeTimeInput(opts) {
+  opts = opts || {};
+  const initial = parseTime4(opts.value || '') || '';
+  const input = el('input', {
+    type: 'text',
+    class: 'mp-input cal-ti-input',
+    value: initial,
+    placeholder: opts.placeholder || '0930 (4자리)',
+    maxlength: 5,
+    inputmode: 'numeric',
+    autocomplete: 'off'
+  });
+  if (opts.style) Object.assign(input.style, opts.style);
+  
+  // blur 시 자동 정규화
+  input.addEventListener('blur', () => {
+    const parsed = parseTime4(input.value);
+    input.value = parsed || '';
+  });
+  
+  // Enter 키도 즉시 정규화 (blur 트리거)
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      input.blur();
+    }
+  });
+  
+  return input;
+}
+
+// ─── input type="date" 자리에 쓸 수 있는 가이드 디자인 date picker ───
+// 사용: const dateEl = makeDateInput({ value: '2026-05-27' });
+//       dateEl.value 또는 dateEl.querySelector('input').value로 값 얻기
+// 호환: input.value 직접 접근 가능하게 .value getter/setter 추가
+function makeDateInput(opts) {
+  _calUidCounter++;
+  const uid = 'cal' + _calUidCounter;
+  const inputId = uid + '-input';
+  
+  const hiddenInput = el('input', { type: 'hidden', id: inputId });
+  hiddenInput.value = opts.value || '';
+  
+  const calWrap = el('div', { class: 'cal-wrap', id: 'cal-wrap-' + uid });
+  
+  const wrap = el('div', { class: 'mp-input' + (opts.compact ? ' compact' : ''), style: { padding: 0, border: 'none', background: 'transparent' } }, [
+    hiddenInput, calWrap
+  ]);
+  
+  // value getter/setter — 기존 코드와 호환
+  Object.defineProperty(wrap, 'value', {
+    get: function() { return hiddenInput.value || ''; },
+    set: function(v) {
+      // 모든 입력 형식 (ISO, Date 객체, 'YYYY-MM-DD') → 'YYYY-MM-DD'로 정규화
+      const normalized = v ? (calNormDs(v) || fmtDate(v) || '') : '';
+      hiddenInput.value = normalized;
+      // calInit 다시 호출 — 캘린더 갱신
+      if (CAL_STATE[uid]) {
+        CAL_STATE[uid].sel = normalized || null;
+        if (CAL_STATE[uid].sel) {
+          CAL_STATE[uid].vY = +CAL_STATE[uid].sel.slice(0, 4);
+          CAL_STATE[uid].vM = +CAL_STATE[uid].sel.slice(5, 7) - 1;
+        }
+        calRender(uid);
+      }
+    }
+  });
+  
+  // DOM에 붙은 후 calInit 호출 — 모달 열린 후
+  wrap._calInit = () => {
+    if (!CAL_STATE[uid]) {
+      calInit(uid, { value: opts.value || '', inputId: inputId });
+      calRender(uid);
+    }
+  };
+  
+  // 다중 트리거 — setTimeout + requestAnimationFrame + 더 긴 fallback
+  // 모달 안에 들어가도 안전하게 초기화
+  let initDone = false;
+  const tryInit = () => {
+    if (initDone) return;
+    if (document.getElementById('cal-wrap-' + uid)) {
+      initDone = true;
+      wrap._calInit();
+    }
+  };
+  requestAnimationFrame(() => { tryInit(); });
+  setTimeout(tryInit, 50);
+  setTimeout(tryInit, 200);  // 모달 애니메이션 대기 fallback
+  
   return wrap;
 }
 
@@ -4965,12 +6394,57 @@ function el(tag, attrs = {}, children = []) {
 
 function fmtDate(v) {
   if (!v) return '';
-  if (typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.slice(0, 10);
+  
+  // ISO datetime (UTC '...Z') — Date 객체로 변환 후 로컬 시간 기준
+  // Apps Script가 datetime을 UTC로 반환할 때 (formatDateForJson_ 미적용 시)
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T.*Z$/.test(v)) {
+    const d = new Date(v);
+    if (!isNaN(d.getTime())) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + dd;
+    }
+  }
+  
+  // 'YYYY-MM-DD' 또는 'YYYY-MM-DDTHH:mm:ss' (timezone 없음, 로컬로 간주)
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) {
+    return v.slice(0, 10);
+  }
+  
+  // Date 객체 또는 기타
   try {
     const d = new Date(v);
     if (isNaN(d.getTime())) return String(v);
-    return d.toISOString().slice(0, 10);
+    // 로컬 시간 기준 yyyy-MM-dd (UTC가 아닌 — timezone 차이로 하루 어긋남 방지)
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + dd;
   } catch { return String(v); }
+}
+
+// 오늘 날짜 (로컬 시간 기준) — toISOString의 UTC 변환 버그 회피
+function todayDs() {
+  const d = new Date();
+  return d.getFullYear() + '-' + 
+    String(d.getMonth() + 1).padStart(2, '0') + '-' + 
+    String(d.getDate()).padStart(2, '0');
+}
+
+// 짧은 한국어 날짜 형식: "05.28 (목)" (연도 없이)
+function fmtDateMonthDay(v) {
+  const d = fmtDate(v);
+  if (!d) return '';
+  const parts = d.split('-');
+  if (parts.length !== 3) return d;
+  const [yyyy, mm, dd] = parts;
+  let weekday = '';
+  try {
+    const date = new Date(d + 'T00:00:00');
+    if (!isNaN(date.getTime())) weekday = WEEKDAY_KO_SHORT[date.getDay()];
+  } catch {}
+  return mm + '.' + dd + (weekday ? ' (' + weekday + ')' : '');
 }
 
 // 짧은 한국어 날짜 형식: "26.05.05 (화)"
@@ -4993,17 +6467,30 @@ function fmtDateShort(v) {
 function fmtTime(v) {
   if (!v) return '';
   const s = String(v);
-  // 1) "HH:MM..." 형식
+  
+  // UTC ISO datetime "...T15:00:00.000Z" — Date 객체로 변환 후 로컬 시간 HH:mm
+  // (Apps Script가 datetime을 UTC로 반환할 때 — timezone 정확)
+  if (/^\d{4}-\d{2}-\d{2}T.*Z$/.test(s)) {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      return String(d.getHours()).padStart(2, '0') + ':' + 
+             String(d.getMinutes()).padStart(2, '0');
+    }
+  }
+  
+  // 1) "HH:MM..." 형식 (가장 일반적 — Apps Script formatDateForJson_ 적용 시)
   const direct = s.match(/^(\d{1,2}):(\d{2})/);
   if (direct) return direct[1].padStart(2,'0') + ':' + direct[2];
-  // 2) ISO datetime "...T12:52..."
+  
+  // 2) timezone 없는 ISO datetime "...T12:52..." (로컬로 간주)
   const iso = s.match(/T(\d{2}):(\d{2})/);
   if (iso) return iso[1] + ':' + iso[2];
+  
   // 3) Date 객체
   if (v instanceof Date && !isNaN(v.getTime())) {
     return String(v.getHours()).padStart(2,'0') + ':' + String(v.getMinutes()).padStart(2,'0');
   }
-  return '';  // 알 수 없는 값은 빈 문자열 (1899-12-30T... 같은 잔재 안 보이게)
+  return '';
 }
 
 function fmtDateTime(v) {
@@ -5108,7 +6595,9 @@ function escHtml(s) {
 
 function nameOfStakeholder(id) {
   const s = STATE.data.stakeholders.find(x => x.stakeholder_id === id);
-  return s ? s.name_ko : (id || '');
+  if (!s) return id || '';
+  // 우선순위: name_ko → name_en → org → ID → 그대로 ID 반환
+  return s.name_ko || s.name_en || s.org || id || '?';
 }
 
 // ─── 메일 파싱 ───────────────────────────────────────────────────
@@ -5142,15 +6631,28 @@ function parseMailText(text) {
   
   // 콜론 없는 한국어 헤더 형식 (네이버/다음 메일 등 — 라벨 단독 줄 + 다음 줄에 값)
   // "보낸 사람\n\n김규빈 <email>" → "From : 김규빈 <email>"
-  // "받는 사람\t임소영" / "받는 사람\n임소영" 둘 다 처리
+  // 공백 처리: [^\S\n]* — 줄바꿈 제외 모든 공백 (tab, nbsp 등 포함)
   text = text
-    .replace(/(\n|^)[ \t]*보낸\s*사람[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1From : $2')
-    .replace(/(\n|^)[ \t]*받는\s*사람[ \t]*\n+[ \t]*([^\n]+@[^\n]*)/g, '$1To : $2');
+    .replace(/(\n|^)[^\S\n]*보낸\s*사람[^\S\n]*\n+[^\S\n]*([^\n]+@[^\n]*)/g, '$1From : $2');
   
-  // 참조 (Cc) — 콜론 없는 형식 + 값이 여러 줄에 걸쳐 있을 수 있음 (이메일 주소 여러 개)
-  // "참조\n A <email>\n B <email>\n\n C <email>\n D <email>" → "Cc : A <e>, B <e>, C <e>, D <e>"
+  // 보낸 사람 라벨이 없는 경우 — 첫 줄에 "이름 <이메일>" + 다음 줄에 "받는 사람"이 있으면
+  // 첫 줄을 발신자로 자동 추론 (네이버/다음 일부 메일 형식)
   text = text.replace(
-    /(\n|^)[ \t]*참조[ \t]*\n+([ \t]*[^\n]*@[^\n]*(?:\n+[ \t]*[^\n]*@[^\n]*)*)/g,
+    /^([^\S\n]*[^\n]*@[^\n]*)\n(?=[^\S\n]*받는\s*사람[^\S\n]*\n)/,
+    'From : $1\n'
+  );
+  
+  // 받는 사람 (To) — 콜론 없는 형식 + 여러 줄에 걸친 값 처리 (이메일 여러 개)
+  // "받는 사람\n A <email>\n B <email>" → "To : A <e>, B <e>"
+  text = text.replace(
+    /(\n|^)[^\S\n]*받는\s*사람[^\S\n]*\n+([^\S\n]*[^\n]*@[^\n]*(?:\n+[^\S\n]*[^\n]*@[^\n]*)*)/g,
+    (m, prefix, value) => prefix + 'To : ' + value.replace(/\n+/g, ' ').trim()
+  );
+  
+  // 참조 (Cc) — 콜론 없는 형식 + 여러 줄에 걸친 값 처리
+  // "참조\n A <email>\n B <email>" → "Cc : A <e>, B <e>"
+  text = text.replace(
+    /(\n|^)[^\S\n]*참조[^\S\n]*\n+([^\S\n]*[^\n]*@[^\n]*(?:\n+[^\S\n]*[^\n]*@[^\n]*)*)/g,
     (m, prefix, value) => prefix + 'Cc : ' + value.replace(/\n+/g, ' ').trim()
   );
   
@@ -5233,7 +6735,8 @@ function parseMailText(text) {
     subject: '', date: '', time: '',
     from_email: '', from_name: '',
     to_emails: [], cc_emails: [],
-    body: ''
+    body: '',
+    oneliner: ''
   };
   
   if (isFormatB) {
@@ -5254,8 +6757,10 @@ function parseMailText(text) {
     const toSec   = grabSection('To', 'Cc', 'Sent', 'Date', 'Subject');
     const ccSec   = grabSection('Cc', 'Sent', 'Date', 'Subject');
     // Sent 우선, 없으면 Date
-    const sentSec = grabSection('Sent', 'Date', 'Subject') || grabSection('Date', 'Subject');
-    const subjSec = grabSection('Subject');
+    const sentSec = grabSection('Sent', 'Date', 'Subject', 'From', 'To', 'Cc') 
+                 || grabSection('Date', 'Subject', 'From', 'To', 'Cc');
+    // Subject가 맨 위에 있을 수도 있어 모든 다른 키로 stop
+    const subjSec = grabSection('Subject', 'From', 'To', 'Cc', 'Sent', 'Date');
     
     // From 이메일/이름
     if (fromSec) {
@@ -5327,8 +6832,29 @@ function parseMailText(text) {
       }
     }
     
-    // 본문: Subject 라인 다음부터
-    if (subjSec) {
+    // 본문 — 헤더 영역 끝 다음부터
+    // 헤더 영역 = 첫 줄부터 마지막 "@" 포함된 줄까지 (이메일 들어간 마지막 줄)
+    // 그 다음 빈 줄 건너뛰고 본문 시작
+    const headerLines = header.split('\n');
+    let lastEmailLineIdx = -1;
+    for (let i = 0; i < headerLines.length; i++) {
+      // 헤더 키 줄 + 이메일 포함 줄
+      if (/^(?:Subject|From|To|Cc|Sent|Date)\s*:/i.test(headerLines[i].trim()) ||
+          /@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(headerLines[i])) {
+        lastEmailLineIdx = i;
+      } else if (lastEmailLineIdx >= 0 && headerLines[i].trim() !== '') {
+        // 이메일/헤더 줄 이후 의미있는 내용 만남 → 본문 시작
+        break;
+      }
+    }
+    if (lastEmailLineIdx >= 0) {
+      let bodyStart = lastEmailLineIdx + 1;
+      while (bodyStart < headerLines.length && headerLines[bodyStart].trim() === '') {
+        bodyStart++;
+      }
+      result.body = headerLines.slice(bodyStart).join('\n').trim();
+    } else if (subjSec) {
+      // fallback: 기존 방식
       const subjLineMatch = header.match(/Subject\s*:[^\n]+\n/i);
       if (subjLineMatch) {
         result.body = header.substring(subjLineMatch.index + subjLineMatch[0].length).trim();
@@ -5418,6 +6944,19 @@ function parseMailText(text) {
   
   // 본문 정리 (연속 빈 줄 압축 등)
   result.body = cleanMailBody(result.body);
+  
+  // 한 줄 요약 추출 — "한 줄 요약: ..." / "요약: ..." 패턴
+  // 줄 단위로 검사 (앞에 ✨/■/공백 어떤 마커 있어도 OK)
+  if (result.body) {
+    const lines = result.body.split('\n');
+    for (const ln of lines) {
+      const m = ln.match(/(?:한\s*줄\s*요약|요약)\s*[:：]\s*(.+)$/);
+      if (m) {
+        result.oneliner = m[1].trim();
+        break;
+      }
+    }
+  }
   
   return result;
 }
@@ -5892,7 +7431,7 @@ function renderTopbar() {
 
 async function refreshData() {
   try {
-    showLoading();
+    // 상단 가는 진행률 바만 사용 (큰 박스 안 띄움 — 중복 방지)
     await apiFetchAll(true);
     renderContent();
     renderNav();
@@ -6686,10 +8225,7 @@ function openTimelineTaskModal(existing) {
       onclick: async () => {
         if (!confirm('이 태스크를 삭제할까요?\n\n' + t.name)) return;
         try {
-          await apiDelete('timeline_tasks', t.timeline_task_id);
-          STATE.loaded = false;
-          await apiFetchAll(true);
-          closeModal();
+          await apiDelete('timeline_tasks', t.timeline_task_id);          closeModal();
           renderContent();
           toast('삭제되었습니다');
         } catch (err) { toast(err.message, 'err'); }
@@ -6729,10 +8265,7 @@ function openTimelineTaskModal(existing) {
           await apiUpdate('timeline_tasks', t.timeline_task_id, data);
         } else {
           await apiCreate('timeline_tasks', data);
-        }
-        STATE.loaded = false;
-        await apiFetchAll(true);
-        closeModal();
+        }        closeModal();
         renderContent();
         toast(isEdit ? '수정되었습니다' : '추가되었습니다');
       } catch (err) { toast(err.message, 'err'); }
@@ -7056,6 +8589,8 @@ function mailThreadCard(t) {
 
 function openMailThreadDetail(t) {
   // 같은 thread_id의 logs 모두 가져와서 시간순
+  const threadId = t.thread_id;
+  const thread = t;  // alias (rerenderTimeline에서 사용)
   const logs = (STATE.data.logs || [])
     .filter(l => l.thread_id === t.thread_id)
     .sort((a, b) => {
@@ -7421,13 +8956,158 @@ function openMailThreadDetail(t) {
   const timeline = el('div', { class: 'mt-timeline' });
   const rerenderTimeline = () => {
     timeline.innerHTML = '';
-    if (logs.length === 0) {
+    
+    // 이 스레드의 task 목록
+    const threadTasks = (STATE.data.tasks || []).filter(t => 
+      t.thread_id === threadId
+    );
+    
+    if (logs.length === 0 && threadTasks.length === 0) {
       timeline.appendChild(el('div', { 
         style: { padding: '20px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '12px' } 
-      }, '이 스레드에 연결된 메일이 없습니다'));
+      }, '이 스레드에 연결된 메일/할 일이 없습니다'));
       return;
     }
-    sortedLogs(timelineDesc).forEach(l => timeline.appendChild(renderTimelineEvent(l)));
+    
+    // logs + tasks 합치고 시간순 정렬
+    const items = [];
+    logs.forEach(l => items.push({ 
+      kind: 'log', data: l,
+      sortKey: (fmtDate(l.date) || '') + ' ' + (l.time || '00:00')
+    }));
+    threadTasks.forEach(t => items.push({ 
+      kind: 'task', data: t,
+      sortKey: (fmtDate(t.due_date) || '') + ' ' + ((t.due_time || '').slice(0, 5) || '00:00')
+    }));
+    
+    items.sort((a, b) => timelineDesc 
+      ? b.sortKey.localeCompare(a.sortKey) 
+      : a.sortKey.localeCompare(b.sortKey)
+    );
+    
+    // ─── + slot 만드는 헬퍼 (호버 강조 라인 + 슬롯 어디든 클릭 = 인라인 입력)
+    const makeAddSlot = (insertDate, insertTime) => {
+      const insertSlot = el('div', { class: 'mt-tl-add-slot' });
+      const addBtn = el('button', { 
+        class: 'mt-tl-add-slot-btn',
+        tabindex: '-1'
+      }, '+');
+      insertSlot.appendChild(addBtn);
+      
+      insertSlot.title = '여기에 할 일 추가' + (insertDate ? ' (' + insertDate + (insertTime ? ' ' + insertTime : '') + ')' : '');
+      insertSlot.onclick = (ev) => {
+        ev.stopPropagation();
+        if (insertSlot.querySelector('.mt-tl-task-inline')) return;
+        
+        // 인라인 입력 박스 — 날짜는 짧은 라벨 (편집 시 비우기 가능)
+        let currentDate = insertDate;
+        const dateLabel = el('span', { 
+          class: 'mt-tl-task-inline-datelabel'
+        }, currentDate ? fmtDateMonthDay(currentDate) : '날짜 없음');
+        const timeEl = makeTimeInput({ value: insertTime, style: { maxWidth: '80px', fontSize: '11px' } });
+        const titleInput = el('input', { 
+          type: 'text', 
+          class: 'mt-tl-task-inline-input',
+          placeholder: '할 일 한 줄 입력... (Enter: 저장, Esc: 취소)'
+        });
+        
+        const closeInline = () => { inline.remove(); };
+        
+        const submit = async () => {
+          const title = titleInput.value.trim();
+          if (!title) { closeInline(); return; }
+          // 시간 정규화 — 사용자가 '0930' 입력 후 blur 없이 저장 클릭해도 안전
+          // 비우기 한 경우 빈 값 그대로 저장 (insertTime fallback 안 함)
+          const parsedTime = parseTime4(timeEl.value) || '';
+          const data = {
+            due_date: currentDate || '',
+            due_time: parsedTime,
+            title: title,
+            brand_id: thread.brand_id || '',
+            thread_id: threadId,
+            status: '대기',
+            category: '할일',
+            priority: '',
+            description: ''
+          };
+          try {
+            await apiCreate('tasks', data);            closeInline();
+            rerenderTimeline();
+            toast('✓ 할 일 추가됨', 'ok');
+          } catch (err) {
+            toast('실패: ' + err.message, 'err');
+          }
+        };
+        
+        const clearBtn = el('button', { 
+          class: 'mt-tl-task-inline-btn',
+          title: '날짜/시간 비우기'
+        }, '비우기');
+        clearBtn.onclick = (e) => { 
+          e.stopPropagation();
+          currentDate = '';
+          dateLabel.textContent = '날짜 없음';
+          dateLabel.classList.add('empty');
+          timeEl.value = '';
+          titleInput.focus();
+        };
+        
+        const saveBtn = el('button', { class: 'mt-tl-task-inline-btn primary' }, '저장');
+        saveBtn.onclick = (e) => { e.stopPropagation(); submit(); };
+        
+        const cancelBtn = el('button', { class: 'mt-tl-task-inline-btn' }, '취소');
+        cancelBtn.onclick = (e) => { e.stopPropagation(); closeInline(); };
+        
+        titleInput.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); submit(); }
+          else if (e.key === 'Escape') { e.preventDefault(); closeInline(); }
+        };
+        
+        const inline = el('div', { class: 'mt-tl-task-inline' }, [
+          el('div', { class: 'mt-tl-task-inline-time', style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, [dateLabel, timeEl]),
+          el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 } }, [
+            el('input', { type: 'checkbox', class: 'mt-tl-task-cb', disabled: 'disabled' }),
+            titleInput
+          ]),
+          el('div', { class: 'mt-tl-task-inline-actions' }, [clearBtn, cancelBtn, saveBtn])
+        ]);
+        
+        insertSlot.appendChild(inline);
+        setTimeout(() => titleInput.focus(), 30);
+      };
+      
+      return insertSlot;
+    };
+    
+    // 렌더 — slot + 카드 시간순 교차
+    items.forEach((item, i) => {
+      // 카드 사이 (i > 0) — 두 카드 중 시간상 더 이전 기준
+      if (i > 0) {
+        const prevItem = items[i - 1];
+        const curItem = items[i];
+        const earlier = prevItem.sortKey < curItem.sortKey ? prevItem : curItem;
+        timeline.appendChild(makeAddSlot(
+          earlier.sortKey.split(' ')[0] || '',
+          earlier.sortKey.split(' ')[1] || ''
+        ));
+      }
+      
+      if (item.kind === 'log') {
+        timeline.appendChild(renderTimelineEvent(item.data));
+      } else {
+        timeline.appendChild(renderTimelineTask(item.data, thread, rerenderTimeline));
+      }
+    });
+    
+    // 맨 위 slot — 첫 카드 위에도 추가 가능 (item[0] 시간 기준)
+    if (items.length > 0) {
+      const firstItem = items[0];
+      const topSlot = makeAddSlot(
+        firstItem.sortKey.split(' ')[0] || '',
+        firstItem.sortKey.split(' ')[1] || ''
+      );
+      timeline.insertBefore(topSlot, timeline.firstChild);
+    }
   };
   
   const tlBtnDesc = el('button', { class: 'mt-sort-btn active' }, '최신순');
@@ -7633,8 +9313,11 @@ function openMailThreadDetail(t) {
     timeline
   ]);
   
-  // ─── 최종 body: 좌측 사이드바 + 우측 메인 ───
-  const body = el('div', { class: 'mt-detail-layout' }, [sidebar, main]);
+  // ─── 우측 사이드바 (단계별 진행 — 인라인 편집) ───
+  const rightSidebar = buildThreadRightSidebar(t);
+  
+  // ─── 최종 body: 좌측 사이드바 + 메인 + 우측 사이드바 ───
+  const body = el('div', { class: 'mt-detail-layout' }, [sidebar, main, rightSidebar]);
   
   openModal({
     title: t.thread_id + ' · ' + (t.name || ''),
@@ -7681,6 +9364,13 @@ function openMailThreadDetail(t) {
             }, [
               el('span', { class: 'mt-fab-menu-item-icon type-memo' }, '📝'),
               el('span', {}, '자유 메모')
+            ]),
+            el('div', { 
+              class: 'mt-fab-menu-item',
+              onclick: () => { closeMenu(); openTaskForm(t, null); }
+            }, [
+              el('span', { class: 'mt-fab-menu-item-icon type-task' }, '✅'),
+              el('span', {}, '할 일 추가')
             ])
           ]);
           fabBtn.appendChild(menuEl);
@@ -7743,10 +9433,7 @@ function openMailThreadDetail(t) {
             await apiDelete('mail_threads', t.thread_id);
             
             // 3) 재로드
-            showTopLoading(95, '새로고침 중...');
-            STATE.loaded = false;
-            await apiFetchAll(true);
-            closeModal();
+            showTopLoading(95, '새로고침 중...');            closeModal();
             renderContent();
             
             showTopLoading(100, '✓ 삭제 완료');
@@ -8058,7 +9745,7 @@ function openSimpleLogForm(thread, existingLog, options) {
   const cfg = titleMap[entryType] || titleMap['메모'];
   
   const t = existingLog || {
-    date: new Date().toISOString().slice(0, 10),
+    date: todayDs(),
     time: new Date().toTimeString().slice(0, 5),
     direction: '',
     from_id: '',
@@ -8069,8 +9756,8 @@ function openSimpleLogForm(thread, existingLog, options) {
   };
   
   const f = {};
-  f.date = el('input', { type: 'date', class: 'mp-input', value: fmtDate(t.date) || '' });
-  f.time = el('input', { type: 'time', class: 'mp-input', value: t.time || '' });
+  f.date = makeDateInput({ value: fmtDate(t.date) || '' });
+  f.time = makeTimeInput({ value: t.time || '' });
   
   // 발신/수신 (통화에만)
   f.direction = el('select', { class: 'mp-input' });
@@ -8081,8 +9768,8 @@ function openSimpleLogForm(thread, existingLog, options) {
   });
   
   // 참여자 (stakeholder 멀티 선택)
-  f.from_id = el('input', { type: 'text', class: 'mp-input', value: t.from_id || '', placeholder: '예: S101 또는 비워두기', list: 'log-stk-datalist' });
-  f.to_ids = el('input', { type: 'text', class: 'mp-input', value: t.to_ids || '', placeholder: '예: S001, S002 (콤마 구분)', list: 'log-stk-datalist' });
+  f.from_id = el('input', { type: 'text', class: 'mp-input', value: t.from_id || '', placeholder: '예: S101 또는 비워두기' });
+  f.to_ids = el('input', { type: 'text', class: 'mp-input', value: t.to_ids || '', placeholder: '예: S001, S002 (콤마 구분)' });
   
   const stkDatalist = el('datalist', { id: 'log-stk-datalist' });
   (STATE.data.stakeholders || []).forEach(s => {
@@ -8107,13 +9794,19 @@ function openSimpleLogForm(thread, existingLog, options) {
   // 좌측 사이드바: 메타 + 날짜/시간/방향/발신자/수신자
   const sidebar = el('div', { class: 'simple-log-sidebar' }, [
     el('div', { class: 'simple-log-meta' }, '스레드: ' + (thread.thread_id || '') + ' · ' + (thread.name || '')),
+    buildTypeSwitcher(entryType, () => ({
+      date: f.date.value, time: f.time.value,
+      direction: entryType === '통화' ? f.direction.value : '',
+      from_id: f.from_id.value, to_ids: f.to_ids.value,
+      subject: f.subject.value, summary: f.summary.value, oneliner: f.oneliner.value
+    }), thread, existingLog),
     el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
       fieldRow('날짜', f.date),
       fieldRow('시간', f.time)
     ]),
     entryType === '통화' ? fieldRow('통화 방향', f.direction) : null,
-    fieldRow(entryType === '통화' ? '상대방 (stakeholder ID)' : '발신자 / 작성자', f.from_id, '예: S101 — 비워둘 수도 있음'),
-    entryType !== '메모' ? fieldRow('상대방 (수신자) — 콤마 구분', f.to_ids) : null
+    fieldRow(entryType === '통화' ? '상대방 (stakeholder ID)' : '발신자 / 작성자', wrapStkField(f.from_id, { multi: false, title: entryType === '통화' ? '상대방 선택 (1명)' : '발신자 선택 (1명)' }), 'ID 직접 입력 또는 [👥 선택]'),
+    entryType !== '메모' ? fieldRow('상대방 (수신자) — 콤마 구분', wrapStkField(f.to_ids, { multi: true, title: '수신자 선택 (다중)' })) : null
   ].filter(Boolean));
   
   // 우측 메인: 제목 / 한 줄 요약 / 본문
@@ -8133,7 +9826,7 @@ function openSimpleLogForm(thread, existingLog, options) {
     const data = {
       type: entryType,
       date: f.date.value,
-      time: f.time.value,
+      time: parseTime4(f.time.value) || '',
       direction: entryType === '통화' ? f.direction.value : '',
       from_id: f.from_id.value.trim(),
       to_ids: f.to_ids.value.trim(),
@@ -8155,10 +9848,7 @@ function openSimpleLogForm(thread, existingLog, options) {
         await apiUpdate('logs', existingLog.log_id, data);
       } else {
         await apiCreate('logs', data);
-      }
-      STATE.loaded = false;
-      await apiFetchAll(true);
-    }, {
+      }    }, {
       loadingText: isEdit ? '저장 중...' : '추가 중...',
       successText: isEdit ? '✓ 저장됨' : '✓ ' + entryType + ' 메모 추가됨'
     });
@@ -8172,10 +9862,7 @@ function openSimpleLogForm(thread, existingLog, options) {
     if (!ok) return;
     
     await withButtonLoading(button, async () => {
-      await apiDelete('logs', existingLog.log_id);
-      STATE.loaded = false;
-      await apiFetchAll(true);
-    }, { loadingText: '삭제 중...', successText: '✓ 삭제됨' });
+      await apiDelete('logs', existingLog.log_id);    }, { loadingText: '삭제 중...', successText: '✓ 삭제됨' });
     closeModal();
     reopenParent();
   };
@@ -8197,6 +9884,726 @@ function openSimpleLogForm(thread, existingLog, options) {
       }, isEdit ? '저장' : '추가')
     ].filter(Boolean)
   });
+}
+
+// ─── Stakeholder Picker (브랜드별 그룹화 + 검색 + 다중/단일 선택) ──────
+// opts: { triggerEl, multi (true=체크박스, false=라디오), currentIds: [], 
+//         onConfirm: (ids) => void, title?: string }
+function openStakeholderPicker(opts) {
+  // 기존 picker 닫기
+  document.querySelectorAll('.stk-picker-popover').forEach(p => p.remove());
+  
+  const currentIds = (opts.currentIds || []).filter(Boolean);
+  const selected = new Set(currentIds);
+  const multi = opts.multi !== false;
+  
+  // 브랜드별 그룹화 (한 사람이 여러 브랜드에 속할 수도 있음)
+  const stks = STATE.data.stakeholders || [];
+  const brandMap = {};
+  stks.forEach(s => {
+    const bIds = new Set();
+    if (s.related_brand_id) bIds.add(s.related_brand_id);
+    String(s.related_brand_ids || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => bIds.add(x));
+    if (s._brand) bIds.add(s._brand);
+    if (bIds.size === 0) bIds.add('__unassigned__');
+    bIds.forEach(bid => {
+      if (!brandMap[bid]) brandMap[bid] = [];
+      if (!brandMap[bid].includes(s)) brandMap[bid].push(s);
+    });
+  });
+  
+  // 브랜드 순서: B01~B13 → LACONZ/EATS/OLIVE → 미지정
+  const sortBrandIds = (a, b) => {
+    if (a === '__unassigned__') return 1;
+    if (b === '__unassigned__') return -1;
+    if (a.startsWith('B') && b.startsWith('B')) return a.localeCompare(b);
+    if (a.startsWith('B')) return -1;
+    if (b.startsWith('B')) return 1;
+    return a.localeCompare(b);
+  };
+  const allBrandIds = Object.keys(brandMap).sort(sortBrandIds);
+  
+  // 브랜드 이름 매핑
+  const getBrandName = (bid) => {
+    if (bid === '__unassigned__') return '(브랜드 미지정)';
+    const b = (STATE.data.brands || []).find(x => x.brand_id === bid);
+    if (b) return bid + ' ' + (b.brand_name || '');
+    // 가상 브랜드 (LACONZ, EATS, OLIVE)
+    const aliasMap = { LACONZ: '라꼰즈', EATS: '쿠팡이츠', OLIVE: '올리브파트너스' };
+    return bid + (aliasMap[bid] ? ' ' + aliasMap[bid] : '');
+  };
+  
+  // popover 만들기
+  const popover = el('div', { class: 'stk-picker-popover' });
+  popover.addEventListener('click', e => e.stopPropagation());
+  
+  // 헤더
+  popover.appendChild(el('div', { class: 'stk-picker-header' }, 
+    opts.title || (multi ? '연락처 선택 (다중)' : '연락처 선택 (1명)')
+  ));
+  
+  // 검색
+  const searchInput = el('input', { 
+    type: 'text', 
+    placeholder: '이름 / 조직 / 이메일 검색...' 
+  });
+  popover.appendChild(el('div', { class: 'stk-picker-search' }, [searchInput]));
+  
+  // 리스트
+  const listEl = el('div', { class: 'stk-picker-list' });
+  popover.appendChild(listEl);
+  
+  // 카운트 + 액션
+  const countEl = el('span', { class: 'stk-picker-count' });
+  const updateCount = () => {
+    countEl.textContent = selected.size + '명 선택됨' + (multi ? '' : ' (1명만)');
+  };
+  
+  const renderList = () => {
+    const q = searchInput.value.trim().toLowerCase();
+    listEl.innerHTML = '';
+    
+    let totalShown = 0;
+    allBrandIds.forEach(bid => {
+      const groupStks = brandMap[bid].filter(s => {
+        if (!q) return true;
+        const blob = [s.name_ko, s.name_en, s.org, s.role, s.team, s.email]
+          .filter(Boolean).join(' ').toLowerCase();
+        return blob.includes(q);
+      });
+      if (groupStks.length === 0) return;
+      totalShown += groupStks.length;
+      
+      const group = el('div', { class: 'stk-picker-group' });
+      const itemsEl = el('div', { class: 'stk-picker-list-items' });
+      
+      // 그룹 내 선택 상태
+      const totalInGroup = groupStks.length;
+      const selectedInGroup = groupStks.filter(s => selected.has(s.stakeholder_id)).length;
+      let selectAllLabel, selectAllClass;
+      if (selectedInGroup === 0) { selectAllLabel = '전체 선택'; selectAllClass = ''; }
+      else if (selectedInGroup === totalInGroup) { selectAllLabel = '전체 해제'; selectAllClass = 'all'; }
+      else { selectAllLabel = selectedInGroup + '/' + totalInGroup + ' 선택'; selectAllClass = 'partial'; }
+      
+      const countLabel = selectedInGroup === 0 
+        ? '(' + totalInGroup + ')'
+        : '(' + selectedInGroup + '/' + totalInGroup + ')';
+      const countClass = selectedInGroup > 0 && selectedInGroup < totalInGroup ? 'partial' : '';
+      
+      const headerChildren = [
+        el('span', { class: 'stk-picker-group-toggle' }, '▼'),
+        el('span', { style: { flex: '1' } }, getBrandName(bid)),
+        el('span', { class: 'stk-picker-group-count ' + countClass }, countLabel)
+      ];
+      
+      // 다중 모드일 때만 전체 선택 버튼 표시
+      if (multi && totalInGroup > 1) {
+        const selectAllBtn = el('button', {
+          type: 'button',
+          class: 'stk-picker-group-select-all ' + selectAllClass,
+          onclick: (ev) => {
+            ev.stopPropagation();
+            if (selectedInGroup === totalInGroup) {
+              // 모두 해제
+              groupStks.forEach(s => selected.delete(s.stakeholder_id));
+            } else {
+              // 모두 선택
+              groupStks.forEach(s => selected.add(s.stakeholder_id));
+            }
+            renderList();
+            updateCount();
+          }
+        }, selectAllLabel);
+        headerChildren.push(selectAllBtn);
+      }
+      
+      const groupHeader = el('div', { class: 'stk-picker-group-header' }, headerChildren);
+      groupHeader.onclick = (ev) => { 
+        ev.stopPropagation();
+        // 버튼 클릭이면 무시
+        if (ev.target.classList.contains('stk-picker-group-select-all')) return;
+        group.classList.toggle('collapsed'); 
+      };
+      group.appendChild(groupHeader);
+      
+      groupStks.forEach(s => {
+        const inputType = multi ? 'checkbox' : 'radio';
+        const input = el('input', { 
+          type: inputType,
+          name: 'stk-picker-' + inputType,
+          'data-stk-id': s.stakeholder_id
+        });
+        input.checked = selected.has(s.stakeholder_id);
+        
+        const itemInfo = el('div', { class: 'stk-picker-item-info' }, [
+          el('div', { class: 'stk-picker-item-name' }, s.name_ko || s.name_en || '?'),
+          el('div', { class: 'stk-picker-item-meta' }, 
+            [s.org, s.role].filter(Boolean).join(' · ') || '—'
+          ),
+          s.email ? el('div', { class: 'stk-picker-item-email' }, s.email) : null
+        ].filter(Boolean));
+        
+        const item = el('div', { class: 'stk-picker-item' }, [input, itemInfo]);
+        
+        const toggle = () => {
+          if (multi) {
+            input.checked = !input.checked;
+          } else {
+            // 라디오: 다른 모든 라디오 해제
+            popover.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+            input.checked = true;
+            selected.clear();
+          }
+          if (input.checked) selected.add(s.stakeholder_id);
+          else selected.delete(s.stakeholder_id);
+          updateCount();
+        };
+        
+        // 행 전체 클릭 = 토글
+        item.onclick = (ev) => {
+          ev.stopPropagation();
+          if (ev.target === input) return;  // 체크박스 자체 클릭은 native
+          toggle();
+        };
+        
+        // 체크박스/라디오 native 클릭
+        input.onclick = (ev) => {
+          ev.stopPropagation();
+          // 라디오는 native에서 다른 게 알아서 unchecked 되니까 selected만 갱신
+          if (!multi) {
+            selected.clear();
+          }
+          if (input.checked) selected.add(s.stakeholder_id);
+          else selected.delete(s.stakeholder_id);
+          updateCount();
+        };
+        
+        itemsEl.appendChild(item);
+      });
+      
+      group.appendChild(itemsEl);
+      listEl.appendChild(group);
+    });
+    
+    if (totalShown === 0) {
+      listEl.appendChild(el('div', { 
+        style: { padding: '24px', textAlign: 'center', color: 'var(--text-faint)', fontSize: '12px' }
+      }, q ? '"' + q + '" 매칭 결과 없음' : '연락처 없음'));
+    }
+  };
+  
+  searchInput.addEventListener('input', renderList);
+  searchInput.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      popover.remove();
+    }
+  });
+  
+  // 푸터
+  popover.appendChild(el('div', { class: 'stk-picker-footer' }, [
+    countEl,
+    el('div', { class: 'stk-picker-actions' }, [
+      el('button', { 
+        type: 'button',
+        class: 'btn btn-secondary', 
+        style: { fontSize: '11.5px', padding: '5px 12px' },
+        onclick: (ev) => { ev.stopPropagation(); popover.remove(); }
+      }, '취소'),
+      el('button', { 
+        type: 'button',
+        class: 'btn btn-primary', 
+        style: { fontSize: '11.5px', padding: '5px 14px' },
+        onclick: (ev) => { 
+          ev.stopPropagation();
+          if (opts.onConfirm) opts.onConfirm(Array.from(selected));
+          popover.remove();
+        }
+      }, '추가')
+    ])
+  ]));
+  
+  // 위치 계산 (triggerEl 아래)
+  document.body.appendChild(popover);
+  renderList();
+  updateCount();
+  
+  if (opts.triggerEl) {
+    const rect = opts.triggerEl.getBoundingClientRect();
+    const popH = popover.offsetHeight || 400;
+    const popW = popover.offsetWidth || 380;
+    const winH = window.innerHeight;
+    const winW = window.innerWidth;
+    
+    let top = rect.bottom + window.scrollY + 4;
+    if (rect.bottom + popH > winH - 20) {
+      top = Math.max(20 + window.scrollY, rect.top + window.scrollY - popH - 4);
+    }
+    let left = rect.left + window.scrollX;
+    if (left + popW > winW - 12) left = winW - popW - 12 + window.scrollX;
+    if (left < 12) left = 12;
+    
+    popover.style.top = top + 'px';
+    popover.style.left = left + 'px';
+  } else {
+    // triggerEl 없으면 화면 중앙
+    popover.style.top = (window.scrollY + 80) + 'px';
+    popover.style.left = ((window.innerWidth - 380) / 2) + 'px';
+  }
+  
+  setTimeout(() => searchInput.focus(), 50);
+  
+  // 외부 클릭 시 닫기
+  setTimeout(() => {
+    const outClick = (e) => {
+      if (!popover.contains(e.target) && e.target !== opts.triggerEl) {
+        popover.remove();
+        document.removeEventListener('click', outClick);
+      }
+    };
+    document.addEventListener('click', outClick);
+  }, 0);
+  
+  return popover;
+}
+
+// ─── 발신자/수신자 필드 옆 picker 버튼 wrap 만들기 헬퍼 ──────────
+// input + 버튼을 stk-pick-wrap으로 감쌈
+function wrapStkField(inputEl, opts) {
+  // opts: { multi, title, label }
+  const btn = el('button', {
+    type: 'button',
+    class: 'stk-pick-btn',
+    title: opts.title || '연락처 선택'
+  }, '👥 선택');
+  
+  btn.onclick = (ev) => {
+    ev.stopPropagation();
+    const currentIds = String(inputEl.value || '')
+      .split(',').map(x => x.trim()).filter(Boolean);
+    
+    openStakeholderPicker({
+      triggerEl: btn,
+      multi: opts.multi !== false,
+      currentIds: currentIds,
+      title: opts.title,
+      onConfirm: (ids) => {
+        inputEl.value = ids.join(', ');
+        // input 이벤트 트리거 (다른 핸들러 알림)
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  };
+  
+  const wrap = el('div', { class: 'stk-pick-wrap' }, [inputEl, btn]);
+  return wrap;
+}
+
+// ─── Type 전환 칩 헬퍼 (메일 ↔ 통화/미팅/메모) ─────────────────
+// currentType: 현재 타입 ('메일'|'통화'|'미팅'|'메모')
+// getValues: () => 현재 폼 값 객체 (전환 시 그대로 전달)
+// thread, existingLog: 폼 컨텍스트
+// 칩 클릭 시: 같은 type이면 무시 / 다른 type이면 → 사라지는 필드 경고 → 모달 전환
+function buildTypeSwitcher(currentType, getValues, thread, existingLog) {
+  const types = [
+    { type: '메일', icon: '📧', label: '메일' },
+    { type: '통화', icon: '📞', label: '통화' },
+    { type: '미팅', icon: '📅', label: '미팅' },
+    { type: '메모', icon: '📝', label: '메모' }
+  ];
+  
+  const wrap = el('div', { class: 'type-switcher' });
+  types.forEach(t => {
+    const isActive = t.type === currentType;
+    const chip = el('button', {
+      type: 'button',
+      class: 'type-switcher-chip t-' + t.type + (isActive ? ' active' : ''),
+      title: t.label + '으로 전환'
+    }, [
+      el('span', { class: 'type-switcher-chip-icon' }, t.icon),
+      el('span', {}, t.label)
+    ]);
+    
+    chip.onclick = (ev) => {
+      ev.stopPropagation();
+      if (t.type === currentType) return;  // 같은 타입 무시
+      
+      const values = getValues();
+      
+      // 사라지는 필드 체크
+      const willLose = [];
+      if (currentType === '메일' && t.type !== '메일') {
+        if (values.cc_ids) willLose.push('참조');
+        if (values.attachments_link) willLose.push('첨부 파일명');
+        if (values.mail_url) willLose.push('원본 메일 URL');
+      }
+      if (currentType === '통화' && t.type !== '통화') {
+        if (values.direction) willLose.push('통화 방향');
+      }
+      if (t.type === '메모') {
+        if (values.to_ids) willLose.push('수신자');
+      }
+      
+      if (willLose.length > 0) {
+        const ok = confirm(
+          '【' + currentType + ' → ' + t.type + ' 전환】\n\n' +
+          '다음 항목의 값이 비워집니다:\n· ' + willLose.join('\n· ') +
+          '\n\n계속할까요?'
+        );
+        if (!ok) return;
+      }
+      
+      // 새 폼 데이터 — 공통 필드 + 사라지지 않는 필드만 유지
+      const transformedLog = Object.assign({}, existingLog || {}, {
+        type: t.type,
+        date: values.date,
+        time: values.time,
+        from_id: values.from_id,
+        subject: values.subject,
+        summary: values.summary,
+        oneliner: values.oneliner
+      });
+      
+      // type별 추가 필드 처리
+      if (t.type !== '메모') {
+        transformedLog.to_ids = values.to_ids || '';
+      } else {
+        transformedLog.to_ids = '';
+      }
+      if (t.type === '메일') {
+        transformedLog.cc_ids = values.cc_ids || '';
+        transformedLog.attachments_link = values.attachments_link || '';
+        transformedLog.mail_url = values.mail_url || '';
+        transformedLog.direction = '';
+      } else {
+        transformedLog.cc_ids = '';
+        transformedLog.attachments_link = '';
+        transformedLog.mail_url = '';
+      }
+      if (t.type === '통화') {
+        transformedLog.direction = values.direction || '';
+      }
+      
+      // 현재 모달 닫고 새 폼 열기
+      closeModal();
+      setTimeout(() => {
+        if (t.type === '메일') {
+          openMailEditForm(thread, transformedLog, { initialTab: 'manual' });
+        } else {
+          openSimpleLogForm(thread, transformedLog, { entryType: t.type });
+        }
+      }, 50);
+    };
+    
+    wrap.appendChild(chip);
+  });
+  
+  return wrap;
+}
+
+// ─── 할 일 (task) 추가/수정 폼 ──────────────────────────────────
+// thread: 현재 스레드 (brand_id, thread_id 사용)
+// existingTask: 수정 모드면 task 객체, 새로 추가면 null
+// options: { insertBeforeDate, insertBeforeTime } — 카드 사이 + 버튼에서 호출 시
+function openTaskForm(thread, existingTask, options) {
+  options = options || {};
+  const isEdit = !!existingTask;
+  const t = existingTask || {};
+  const brandId = thread.brand_id || '';
+  const threadId = thread.thread_id || '';
+  
+  // 기본 날짜/시간: insertBefore 시 그 시점 직전, 없으면 오늘 + 현재 시간
+  const now = new Date();
+  const defaultDate = options.insertBeforeDate || fmtDate(t.due_date) || 
+    (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0'));
+  const defaultTime = options.insertBeforeTime || (t.due_time || '').slice(0, 5) || 
+    (String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'));
+  
+  const f = {};
+  f.date = makeDateInput({ value: defaultDate });
+  f.time = makeTimeInput({ value: defaultTime });
+  f.title = el('input', { type: 'text', class: 'mp-input', value: t.title || '', placeholder: '예: 메가커피 측 회신 확인하기' });
+  f.priority = el('select', { class: 'mp-input' });
+  ['', '낮음', '보통', '높음', '긴급'].forEach(p => {
+    const o = el('option', { value: p }, p || '(우선순위 없음)');
+    if ((t.priority || '') === p) o.selected = true;
+    f.priority.appendChild(o);
+  });
+  f.description = el('textarea', { class: 'mp-input', rows: 3, placeholder: '상세 메모 (선택)' });
+  f.description.value = t.description || '';
+  
+  const fieldRow = (label, control, hint) => el('div', { style: { marginBottom: '10px' } }, [
+    el('label', { style: { display: 'block', fontSize: '11.5px', fontWeight: '500', color: 'var(--text-muted)', marginBottom: '4px' } }, label),
+    control,
+    hint ? el('div', { style: { fontSize: '10.5px', color: 'var(--text-faint)', marginTop: '3px' } }, hint) : null
+  ].filter(Boolean));
+  
+  const body = el('div', { style: { padding: '8px 0' } }, [
+    el('div', { 
+      style: { fontSize: '11px', color: 'var(--text-faint)', marginBottom: '12px', 
+               padding: '6px 10px', background: 'rgba(107, 114, 128, 0.06)', borderRadius: '5px' } 
+    }, '✅ 할 일 · 스레드: ' + threadId + ' · 브랜드: ' + (brandId || '없음')),
+    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
+      fieldRow('마감일', f.date),
+      fieldRow('마감시간', f.time, '타임라인 정렬 기준')
+    ]),
+    fieldRow('할 일 내용', f.title),
+    fieldRow('우선순위', f.priority),
+    fieldRow('상세 메모 (선택)', f.description)
+  ]);
+  
+  const saveBtn = el('button', { class: 'btn btn-primary' }, isEdit ? '저장' : '추가');
+  const deleteBtn = isEdit ? el('button', { 
+    class: 'btn btn-secondary', 
+    style: { color: 'var(--err, #dc2626)' }
+  }, '삭제') : null;
+  
+  const footer = el('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' } }, [
+    deleteBtn || el('div', {}),
+    el('div', { style: { display: 'flex', gap: '6px' } }, [
+      el('button', { class: 'btn btn-secondary', onclick: () => closeModal() }, '취소'),
+      saveBtn
+    ])
+  ]);
+  
+  saveBtn.onclick = async () => {
+    if (!f.title.value.trim()) { toast('할 일 내용을 입력하세요', 'err'); return; }
+    
+    const data = {
+      due_date: f.date.value,
+      due_time: parseTime4(f.time.value) || '',
+      title: f.title.value.trim(),
+      priority: f.priority.value,
+      description: f.description.value.trim(),
+      brand_id: brandId,
+      thread_id: threadId,
+      status: isEdit ? (t.status || '대기') : '대기',
+      category: '할일'
+    };
+    
+    try {
+      await withButtonLoading(saveBtn, async () => {
+        if (isEdit) {
+          await apiUpdate('tasks', t.task_id, data);
+        } else {
+          await apiCreate('tasks', data);
+        }      });
+      toast(isEdit ? '저장됨' : '추가됨', 'ok');
+      closeModal();
+      // 메일 스레드 모달이 열려있으면 다시 열기 (타임라인 갱신)
+      if (typeof openMailThreadDetail === 'function') {
+        const updatedThread = (STATE.data.mail_threads || []).find(x => x.thread_id === threadId) || thread;
+        setTimeout(() => openMailThreadDetail(updatedThread), 100);
+      }
+    } catch (err) {
+      toast('실패: ' + err.message, 'err');
+    }
+  };
+  
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      if (!confirm('이 할 일을 삭제할까요?')) return;
+      try {
+        await withButtonLoading(deleteBtn, async () => {
+          await apiDelete('tasks', t.task_id);        });
+        toast('삭제됨', 'ok');
+        closeModal();
+        if (typeof openMailThreadDetail === 'function') {
+          const updatedThread = (STATE.data.mail_threads || []).find(x => x.thread_id === threadId) || thread;
+          setTimeout(() => openMailThreadDetail(updatedThread), 100);
+        }
+      } catch (err) {
+        toast('실패: ' + err.message, 'err');
+      }
+    };
+  }
+  
+  openModal({
+    title: isEdit ? '✅ 할 일 수정' : '✅ 할 일 추가',
+    body: body,
+    footer: footer,
+    width: '520px'
+  });
+  
+  setTimeout(() => f.title.focus(), 100);
+}
+
+// ─── 타임라인 task 카드 렌더 (한 줄 컴팩트 + 인라인 편집/삭제) ───
+// onUpdated: 저장 후 호출되는 콜백 (보통 rerenderTimeline) — 시간 변경 시 위치 재정렬
+function renderTimelineTask(task, thread, onUpdated) {
+  const isDone = (task.status || '').trim() === '완료' || 
+                 (task.status || '').toLowerCase() === 'done' ||
+                 !!task.completed_at;
+  
+  const dateShort = (fmtDateShort(task.due_date) || '').split(' ')[0];
+  const timeShort = (task.due_time || '').slice(0, 5);
+  
+  const cb = el('input', { 
+    type: 'checkbox', 
+    class: 'mt-tl-task-cb',
+    'data-task-id': task.task_id
+  });
+  cb.checked = isDone;
+  
+  cb.onclick = async (ev) => {
+    ev.stopPropagation();
+    const newStatus = cb.checked ? '완료' : '대기';
+    const data = { status: newStatus };
+    if (cb.checked) {
+      const now = new Date();
+      data.completed_at = now.getFullYear() + '-' + 
+        String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(now.getDate()).padStart(2, '0');
+    } else {
+      data.completed_at = '';
+    }
+    try {
+      await apiUpdate('tasks', task.task_id, data);
+      // 로컬 STATE 직접 업데이트
+      const taskInState = (STATE.data.tasks || []).find(x => x.task_id === task.task_id);
+      if (taskInState) Object.assign(taskInState, data);
+      card.classList.toggle('done', cb.checked);
+      toast(cb.checked ? '✓ 완료' : '↩ 미완료', 'ok');
+    } catch (err) {
+      cb.checked = !cb.checked;  // 롤백
+      toast('실패: ' + err.message, 'err');
+    }
+  };
+  
+  // 인라인 편집 모드 전환
+  const enterEditMode = () => {
+    if (card.classList.contains('editing')) return;
+    card.classList.add('editing');
+    
+    const dateInput = el('input', { 
+      type: 'date', class: 'mt-tl-task-inline-input', 
+      value: fmtDate(task.due_date) || '',
+      style: { maxWidth: '120px', fontSize: '11px' }
+    });
+    const timeInput = makeTimeInput({ 
+      value: timeShort,
+      style: { maxWidth: '80px', fontSize: '11px' }
+    });
+    const titleInput = el('input', { 
+      type: 'text', class: 'mt-tl-task-inline-input',
+      value: task.title || '',
+      placeholder: '할 일 내용...'
+    });
+    
+    const exitEdit = () => {
+      card.classList.remove('editing');
+      // 다시 일반 렌더
+      const newCard = renderTimelineTask(task, thread, onUpdated);
+      card.replaceWith(newCard);
+    };
+    
+    const saveEdit = async () => {
+      const title = titleInput.value.trim();
+      if (!title) { toast('내용을 입력하세요', 'err'); return; }
+      // 시간 정규화 — '0930' 입력 후 blur 없이 저장 시도해도 안전
+      const parsedTime = parseTime4(timeInput.value) || '';
+      const newDate = dateInput.value || '';
+      // 시간/날짜 변경 여부 체크 → 변경됐으면 위치 재정렬 필요
+      const oldKey = (fmtDate(task.due_date) || '') + ' ' + ((task.due_time || '').slice(0, 5));
+      const newKey = newDate + ' ' + parsedTime;
+      const timeChanged = oldKey !== newKey;
+      
+      const data = {
+        due_date: newDate,
+        due_time: parsedTime,
+        title: title
+      };
+      try {
+        await apiUpdate('tasks', task.task_id, data);
+        Object.assign(task, data);
+        const taskInState = (STATE.data.tasks || []).find(x => x.task_id === task.task_id);
+        if (taskInState) Object.assign(taskInState, data);
+        toast('✓ 저장됨', 'ok');
+        if (timeChanged && typeof onUpdated === 'function') {
+          // 시간 변경 — 타임라인 전체 재정렬
+          onUpdated();
+        } else {
+          exitEdit();
+        }
+      } catch (err) {
+        toast('실패: ' + err.message, 'err');
+      }
+    };
+    
+    titleInput.onkeydown = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); exitEdit(); }
+    };
+    
+    const saveBtn = el('button', { class: 'mt-tl-task-inline-btn primary' }, '저장');
+    saveBtn.onclick = (e) => { e.stopPropagation(); saveEdit(); };
+    
+    const cancelBtn = el('button', { class: 'mt-tl-task-inline-btn' }, '취소');
+    cancelBtn.onclick = (e) => { e.stopPropagation(); exitEdit(); };
+    
+    // 카드 내용을 편집 폼으로 교체
+    card.innerHTML = '';
+    card.appendChild(el('div', { class: 'mt-tl-task-time', style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, [dateInput, timeInput]));
+    card.appendChild(el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 } }, [
+      el('input', { type: 'checkbox', class: 'mt-tl-task-cb', disabled: 'disabled', checked: isDone ? 'checked' : null }),
+      titleInput
+    ]));
+    card.appendChild(el('div', { class: 'mt-tl-task-inline-actions' }, [cancelBtn, saveBtn]));
+    
+    setTimeout(() => { titleInput.focus(); titleInput.select(); }, 30);
+  };
+  
+  const editBtn = el('button', { 
+    class: 'mt-tl-task-btn',
+    title: '수정',
+    onclick: (ev) => {
+      ev.stopPropagation();
+      enterEditMode();
+    }
+  }, '✏');
+  
+  const deleteBtn = el('button', { 
+    class: 'mt-tl-task-btn',
+    title: '삭제',
+    style: { color: 'var(--err, #dc2626)' },
+    onclick: async (ev) => {
+      ev.stopPropagation();
+      try {
+        await apiDelete('tasks', task.task_id);
+        // 로컬 STATE에서 제거
+        const idx = (STATE.data.tasks || []).findIndex(x => x.task_id === task.task_id);
+        if (idx >= 0) STATE.data.tasks.splice(idx, 1);
+        // 카드 즉시 fade out + 제거
+        card.style.transition = 'opacity 0.18s, transform 0.18s';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(-8px)';
+        setTimeout(() => {
+          card.remove();
+          // 위/아래 add-slot도 정리는 다음 rerenderTimeline에서
+        }, 180);
+        toast('삭제됨', 'ok');
+      } catch (err) {
+        toast('실패: ' + err.message, 'err');
+      }
+    }
+  }, '🗑');
+  
+  const card = el('div', { 
+    class: 'mt-tl-task' + (isDone ? ' done' : ''),
+    'data-task-id': task.task_id 
+  }, [
+    el('div', { class: 'mt-tl-task-time' }, [
+      el('span', { class: 'mt-tl-task-time-date' }, dateShort || '?'),
+      timeShort ? el('span', { class: 'mt-tl-task-time-hm' }, timeShort) : null
+    ].filter(Boolean)),
+    el('div', { class: 'mt-tl-task-content' }, [
+      cb,
+      el('span', { class: 'mt-tl-task-title', title: task.title || '' }, task.title || '(제목 없음)')
+    ]),
+    el('div', { class: 'mt-tl-task-actions' }, [editBtn, deleteBtn])
+  ]);
+  
+  return card;
 }
 
 function openMailEditForm(thread, existingLog, options) {
@@ -8231,8 +10638,8 @@ function openMailEditForm(thread, existingLog, options) {
     modeSelect.appendChild(opt);
   });
   
-  f.date = el('input', { type: 'date', class: 'mp-input' });
-  f.time = el('input', { type: 'time', class: 'mp-input' });
+  f.date = makeDateInput({ value: '' });
+  f.time = makeTimeInput({ value: '' });
   
   const stkOptions = (STATE.data.stakeholders || []).map(s => ({
     id: s.stakeholder_id,
@@ -8242,18 +10649,72 @@ function openMailEditForm(thread, existingLog, options) {
   const stkDatalist = el('datalist', { id: stkDatalistId });
   stkOptions.forEach(o => stkDatalist.appendChild(el('option', { value: o.id }, o.label)));
   
-  f.from_id = el('input', { type: 'text', class: 'mp-input', list: stkDatalistId, placeholder: 'stakeholder ID (예: S0001)' });
+  f.from_id = el('input', { type: 'text', class: 'mp-input', placeholder: 'stakeholder ID (예: S0001)' });
   f.to_ids = el('input', { type: 'text', class: 'mp-input', placeholder: 'ID 콤마 구분 (예: S0001, S0002)' });
   f.cc_ids = el('input', { type: 'text', class: 'mp-input', placeholder: 'ID 콤마 구분 (선택)' });
   f.subject = el('input', { type: 'text', class: 'mp-input', placeholder: '메일 제목' });
-  f.summary = el('textarea', { class: 'mp-input', rows: 6, placeholder: '본문' });
+  f.summary = el('textarea', { class: 'mp-input', rows: 6, placeholder: '본문 (메일 텍스트를 붙여넣으면 자동으로 발신/수신/참조 채워짐)' });
+  
+  // 본문에 메일 텍스트 붙여넣기 → 자동 파싱 + 빈 필드 채움
+  f.summary.addEventListener('paste', (e) => {
+    const pasted = (e.clipboardData || window.clipboardData).getData('text');
+    if (!pasted || pasted.length < 30) return;  // 너무 짧으면 무시
+    
+    // 메일 헤더 형식 감지 — 보낸 사람 / 받는 사람 / From: / To: / 참조 중 하나라도 있으면
+    const hasMailHeader = /(?:보낸\s*사람|받는\s*사람|참조|^\s*From\s*:|^\s*To\s*:|^\s*Cc\s*:)/im.test(pasted);
+    if (!hasMailHeader) return;  // 일반 텍스트 → 그냥 paste
+    
+    // 파싱 시도
+    let parsed;
+    try {
+      parsed = parseMailText(pasted);
+    } catch { return; }
+    if (!parsed) return;
+    
+    // 사용자에게 확인 — 자동 채우기 진행?
+    // 빈 필드만 채움 (이미 채워진 거 안 건드림)
+    setTimeout(() => {
+      const filled = [];
+      if (parsed.from_email && !f.from_id.value) {
+        const stk = findStakeholderByEmail(parsed.from_email);
+        if (stk) { f.from_id.value = stk.stakeholder_id; filled.push('발신자'); }
+      }
+      if (parsed.to_emails && parsed.to_emails.length && !f.to_ids.value) {
+        const ids = parsed.to_emails.map(em => findStakeholderByEmail(em)).filter(Boolean).map(s => s.stakeholder_id);
+        if (ids.length) { f.to_ids.value = ids.join(', '); filled.push('수신자'); }
+      }
+      if (parsed.cc_emails && parsed.cc_emails.length && !f.cc_ids.value) {
+        const ids = parsed.cc_emails.map(em => findStakeholderByEmail(em)).filter(Boolean).map(s => s.stakeholder_id);
+        if (ids.length) { f.cc_ids.value = ids.join(', '); filled.push('참조'); }
+      }
+      if (parsed.subject && !f.subject.value) {
+        f.subject.value = parsed.subject; filled.push('제목');
+      }
+      if (parsed.date && !f.date.value) {
+        f.date.value = parsed.date; filled.push('날짜');
+      }
+      if (parsed.time && !f.time.value) {
+        f.time.value = parsed.time;
+      }
+      if (parsed.oneliner && !f.oneliner.value) {
+        f.oneliner.value = parsed.oneliner; filled.push('한 줄 요약');
+      }
+      // 본문은 paste 후 자동으로 들어감 (browser default) — body 파싱 결과로 교체
+      if (parsed.body) {
+        f.summary.value = parsed.body;
+      }
+      if (filled.length) {
+        toast('✓ 자동 채움: ' + filled.join(', '), 'ok');
+      }
+    }, 50);
+  });
   f.attachments_link = el('textarea', { class: 'mp-input', rows: 2, placeholder: '첨부 파일명 (한 줄에 하나)' });
   f.oneliner = el('input', { type: 'text', class: 'mp-input', placeholder: '한 줄 요약 (선택)' });
   f.mail_url = el('input', { type: 'url', class: 'mp-input', placeholder: '예: https://mail.google.com/mail/u/0/#inbox/abc123' });
   
   const fillFormFromLog = (log) => {
-    f.date.value = log ? (log.date || '') : '';
-    f.time.value = log ? (log.time || '') : '';
+    f.date.value = log ? (fmtDate(log.date) || '') : '';
+    f.time.value = log ? (fmtTime(log.time) || '') : '';
     f.from_id.value = log ? (log.from_id || '') : '';
     f.to_ids.value = log ? (log.to_ids || '') : '';
     f.cc_ids.value = log ? (log.cc_ids || '') : '';
@@ -8278,21 +10739,42 @@ function openMailEditForm(thread, existingLog, options) {
     hint ? el('div', { style: { fontSize: '10.5px', color: 'var(--text-faint)', marginTop: '3px' } }, hint) : null
   ].filter(Boolean));
   
-  const manualPanel = el('div', { class: 'modal-tab-panel' + (activeTab === 'manual' ? ' active' : ''), id: 'mep-manual' }, [
-    fieldRow('편집 대상', modeSelect, '새 메일을 추가하거나 기존 메일을 선택해 수정하세요'),
-    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' } }, [
+  // 좌측 사이드바: 메타 + 편집대상 + 날짜/시간 + 발신/수신/참조
+  const mailSidebar = el('div', { class: 'simple-log-sidebar' }, [
+    el('div', { class: 'simple-log-meta' }, 
+      '스레드: ' + (thread.thread_id || '') + ' · ' + (thread.name || '')
+    ),
+    buildTypeSwitcher('메일', () => ({
+      date: f.date.value, time: f.time.value,
+      from_id: f.from_id.value, to_ids: f.to_ids.value, cc_ids: f.cc_ids.value,
+      subject: f.subject.value, summary: f.summary.value, oneliner: f.oneliner.value,
+      attachments_link: f.attachments_link.value, mail_url: f.mail_url.value
+    }), thread, currentLog),
+    fieldRow('편집 대상', modeSelect, '새 메일 또는 기존 메일 선택'),
+    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
       fieldRow('날짜', f.date),
       fieldRow('시간', f.time)
     ]),
-    fieldRow('발신자 (stakeholder_id)', f.from_id, 'datalist에서 선택 또는 ID 직접 입력'),
-    fieldRow('수신자 (stakeholder_id, 콤마 구분)', f.to_ids),
-    fieldRow('참조 (stakeholder_id, 콤마 구분, 선택)', f.cc_ids),
+    fieldRow('발신자', wrapStkField(f.from_id, { multi: false, title: '발신자 선택 (1명)' }), 'ID 또는 [👥 선택]'),
+    fieldRow('수신자', wrapStkField(f.to_ids, { multi: true, title: '수신자 선택 (다중)' }), '콤마 구분'),
+    fieldRow('참조 (선택)', wrapStkField(f.cc_ids, { multi: true, title: '참조 선택 (다중)' }))
+  ]);
+  
+  // 우측 메인: 제목 / 본문 / 첨부 / 한 줄 요약 / URL
+  const mailMain = el('div', { class: 'simple-log-main' }, [
     fieldRow('제목', f.subject),
     fieldRow('본문', f.summary),
+    fieldRow('한 줄 요약 (선택)', f.oneliner, '핵심 흐름 영역에 보임'),
     fieldRow('첨부 파일명 (선택)', f.attachments_link),
-    fieldRow('한 줄 요약 (선택)', f.oneliner),
-    fieldRow('원본 메일 URL (선택)', f.mail_url, '예: Gmail 링크 — 클릭하면 그 메일이 새 탭에서 열림'),
-    stkDatalist
+    fieldRow('원본 메일 URL (선택)', f.mail_url, '예: Gmail 링크 — 클릭하면 새 탭에서 열림')
+  ]);
+  
+  const manualPanel = el('div', { class: 'modal-tab-panel' + (activeTab === 'manual' ? ' active' : ''), id: 'mep-manual' }, [
+    el('div', { class: 'simple-log-form-wrap' }, [
+      mailSidebar,
+      mailMain,
+      stkDatalist
+    ])
   ]);
   
   // ───────────────────────────────────────
@@ -8488,7 +10970,7 @@ function openMailEditForm(thread, existingLog, options) {
   const saveManual = async (button) => {
     const data = {
       date: f.date.value,
-      time: f.time.value,
+      time: parseTime4(f.time.value) || '',
       type: '메일',
       from_id: f.from_id.value.trim(),
       to_ids: f.to_ids.value.trim(),
@@ -8514,10 +10996,7 @@ function openMailEditForm(thread, existingLog, options) {
         await apiUpdate('logs', currentLog.log_id, data);
       } else {
         await apiCreate('logs', data);
-      }
-      STATE.loaded = false;
-      await apiFetchAll(true);
-    }, {
+      }    }, {
       loadingText: isEditing ? '수정 중...' : '추가 중...',
       successText: isEditing ? '✓ 수정됨' : '✓ 메일 추가됨'
     });
@@ -8555,7 +11034,7 @@ function openMailEditForm(thread, existingLog, options) {
         subject: m.subject || '',
         summary: m.body || '',
         attachments_link: (p.attaches || []).join('\n'),
-        oneliner: '',
+        oneliner: m.oneliner || '',
         thread_id: thread.thread_id,
         direction: (p.fromStk && p.fromStk.email && /@olivecompany\.co\.kr$/i.test(p.fromStk.email)) ? '발신' : '수신'
       };
@@ -8576,10 +11055,7 @@ function openMailEditForm(thread, existingLog, options) {
           }
           saved++;
         } catch (e) { failed++; }
-      }
-      STATE.loaded = false;
-      await apiFetchAll(true);
-      if (failed > 0) toast('✓ ' + saved + '건 처리 (실패 ' + failed + '건)', 'warn');
+      }      if (failed > 0) toast('✓ ' + saved + '건 처리 (실패 ' + failed + '건)', 'warn');
     }, {
       loadingText: (isUpdating ? '갱신' : '일괄 등록') + ' 중 (' + toSave.length + '건)...',
       successText: isUpdating
@@ -8593,10 +11069,7 @@ function openMailEditForm(thread, existingLog, options) {
     if (!currentLog || !currentLog.log_id) return;
     if (!confirm('이 메일을 삭제할까요?\n(되돌릴 수 없음)')) return;
     await withButtonLoading(button, async () => {
-      await apiDelete('logs', currentLog.log_id);
-      STATE.loaded = false;
-      await apiFetchAll(true);
-    }, {
+      await apiDelete('logs', currentLog.log_id);    }, {
       loadingText: '삭제 중...',
       successText: '✓ 삭제됨'
     });
@@ -8686,31 +11159,38 @@ function openMailThreadForm(existing) {
   f.next_action = el('textarea', { class: 'mp-input', rows: 2, placeholder: '예: 샘플 6 SKU 발송 → 운송장 정보 공유 → 통관 이슈 시 컨택' });
   f.next_action.value = t.next_action || '';
   
-  f.kickoff_date = el('input', { type: 'date', class: 'mp-input', value: t.kickoff_date ? fmtDate(t.kickoff_date) : '' });
+  f.kickoff_date = makeDateInput({ value: t.kickoff_date ? fmtDate(t.kickoff_date) : '' });
   f.mailbox_url = el('input', { type: 'url', class: 'mp-input', value: t.mailbox_url || '', placeholder: '예: https://mail.google.com/.../label/피자헛' });
   
   const fieldRow = (label, input) => el('div', { class: 'mp-row' }, [
     el('div', { class: 'mp-label' }, label), input
   ]);
   
-  const body = el('div', {}, [
+  // 좌측 사이드바: 메타 (이름/브랜드/상태/단계/회사명/날짜)
+  const threadSidebar = el('div', { class: 'simple-log-sidebar' }, [
     fieldRow('스레드 이름 ★', f.name),
-    fieldRow('부제 (한 줄 요약)', f.subtitle),
-    el('div', { class: 'mp-inline-fields' }, [
+    el('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' } }, [
       fieldRow('브랜드', f.brand_id),
-      fieldRow('상태', f.status),
+      fieldRow('상태', f.status)
     ]),
-    fieldRow('상대측 회사명 (client_org)', f.client_org),
     fieldRow('현재 단계', f.current_stage),
+    fieldRow('상대측 회사명', f.client_org),
+    fieldRow('첫 컨택일', f.kickoff_date)
+  ]);
+  
+  // 우측 메인: 부제 + 다음 액션 + URL
+  const threadMain = el('div', { class: 'simple-log-main' }, [
+    fieldRow('부제 (한 줄 요약)', f.subtitle),
     fieldRow('다음 액션', f.next_action),
-    fieldRow('첫 컨택일 (kickoff_date)', f.kickoff_date),
     fieldRow('브랜드 메일함 URL', f.mailbox_url)
   ]);
+  
+  const body = el('div', { class: 'simple-log-form-wrap' }, [threadSidebar, threadMain]);
   
   openModal({
     title: isEdit ? '메일스레드 편집' : '새 메일스레드',
     body,
-    wide: false,
+    wide: true,
     footer: [
       el('button', { class: 'btn btn-secondary', onclick: closeModal }, '취소'),
       (() => {
@@ -8733,10 +11213,7 @@ function openMailThreadForm(existing) {
               await apiUpdate('mail_threads', t.thread_id, data);
             } else {
               await apiCreate('mail_threads', data);
-            }
-            STATE.loaded = false;
-            await apiFetchAll(true);
-          }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 추가됨' });
+            }          }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 추가됨' });
           closeModal();
           renderContent();
         };
@@ -9493,11 +11970,7 @@ function startInlineEdit(row, valSpan, brand, field, type, options, placeholder)
     try {
       await apiUpdate('brands', brand.brand_id, { [field]: toSend });
       await logBrandChange(brand, field, originalVal, toSend, type, options);
-      brand[field] = toSend;
-      STATE.loaded = false;
-      await apiFetchAll(true);
-      
-      // 로컬 브랜드 객체도 새 데이터로 갱신
+      brand[field] = toSend;      // 로컬 브랜드 객체도 새 데이터로 갱신
       const refreshed = STATE.data.brands.find(x => x.brand_id === brand.brand_id);
       if (refreshed) Object.assign(brand, refreshed);
       
@@ -9733,114 +12206,713 @@ function renderBrands(root) {
   }
 }
 
-// ─── 단계별 비교 뷰 (라운드별 그룹화 표) ────────────────────────
+// ─── 단계별 비교 뷰 (라운드 컬럼 + 9개 프로세스 + 가로 스크롤) ──────
 function renderBrandsCompareView(root) {
-  const brands = STATE.data.brands || [];
-  
-  // 라운드별 그룹화
-  const byRound = {};
-  brands.forEach(b => {
-    const r = String(b.round || '미정');
-    if (!byRound[r]) byRound[r] = [];
-    byRound[r].push(b);
+  // 정렬: round → brand_id
+  const brands = (STATE.data.brands || []).slice().sort((a, b) => {
+    const ra = parseInt(a.round || '999', 10);
+    const rb = parseInt(b.round || '999', 10);
+    if (ra !== rb) return ra - rb;
+    return (a.brand_id || '').localeCompare(b.brand_id || '');
   });
-  Object.keys(byRound).forEach(r => {
-    byRound[r].sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
-  });
-  
-  // 라운드 정렬: 1, 2, 3, ..., 미정 맨 뒤
-  const roundKeys = Object.keys(byRound).sort((a, b) => {
-    if (a === '미정') return 1;
-    if (b === '미정') return -1;
-    return parseInt(a, 10) - parseInt(b, 10);
-  });
-  
-  // 상태 텍스트 → 톤 매핑 (스크린샷의 색상 패턴 반영)
-  const statusToTone = (s) => {
-    if (!s) return 'empty';
-    const t = String(s);
-    // 완료 (진한 초록)
-    if (/^완료$|수령\s*완료|확인\s*완료|✓/.test(t)) return 'done';
-    // 필요 없음 (회색)
-    if (/필요\s*없음|예정\s*없음/.test(t)) return 'na';
-    // 필요/대기 (노랑) — 계약서 전달 필요 등
-    if (/전달\s*필요|미진행|미정$/.test(t)) return 'pending';
-    // 진행중 (연한 초록) — 개발중, 날인 진행, 셰프와 소통중 등
-    if (/개발중|진행|예정|소통중|날인|확인/.test(t)) return 'progress';
-    return 'progress';
-  };
   
   const section = el('div', { class: 'brands-compare-section' });
   
-  roundKeys.forEach(r => {
-    const roundBrands = byRound[r];
-    const launchDate = roundBrands.find(b => b.launch_date)?.launch_date;
-    const launchWeek = roundBrands.find(b => b.launch_week)?.launch_week;
-    
-    const roundEl = el('div', { class: 'brands-compare-round' });
-    roundEl.appendChild(el('div', { class: 'brands-compare-round-title' }, [
-      el('span', { class: 'brands-compare-round-badge' }, 
-        r === '미정' ? '미정' : 'Round ' + r
-      ),
-      launchDate ? el('span', { class: 'brands-compare-round-date' }, 
-        '런칭: ' + fmtDateShort(launchDate) + (launchWeek ? ' · ' + launchWeek : '')
-      ) : null
-    ].filter(Boolean)));
-    
-    const table = el('table', { class: 'brands-compare-table' });
-    
-    const thead = el('thead');
-    thead.appendChild(el('tr', {}, [
-      el('th', { style: { width: '160px' } }, '브랜드'),
-      el('th', {}, '모델 계약'),
-      el('th', {}, '브랜드 계약'),
-      el('th', {}, '메뉴 개발'),
-      el('th', {}, '프로필 촬영'),
-      el('th', {}, '입금 상태')
-    ]));
-    table.appendChild(thead);
-    
-    const tbody = el('tbody');
-    roundBrands.forEach(b => {
-      const isRisk = b.risk_flag === 'TRUE' || b.risk_flag === true;
-      const row = el('tr', {
-        class: 'brand-row',
-        onclick: () => {
-          STATE.filters.selected_brand = b.brand_id;
-          STATE.filters.brands_view = 'detail';
-          renderContent();
-        }
-      });
-      
-      // 1열: 브랜드명
-      row.appendChild(el('td', {}, [
-        el('div', { class: 'brand-cell-name' }, [
-          el('span', { class: 'brand-cell-id' }, b.brand_id || ''),
-          el('span', { class: 'brand-cell-bname' }, b.brand_name || '?'),
-          isRisk ? el('span', { class: 'brand-cell-risk', title: '위험 플래그' }, '⚠️') : null
-        ].filter(Boolean))
-      ]));
-      
-      // 2~6열: 상태 5개
-      ['contract_model', 'contract_brand', 'menu_dev', 'profile_shoot', 'payment_status'].forEach(k => {
-        const v = b[k] || '';
-        const tone = statusToTone(v);
-        row.appendChild(el('td', {}, 
-          v 
-            ? el('span', { class: 'brand-status-cell tone-' + tone }, v) 
-            : el('span', { class: 'brand-status-cell tone-empty' }, '—')
-        ));
-      });
-      
-      tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-    
-    roundEl.appendChild(table);
-    section.appendChild(roundEl);
+  // 가로 스크롤 wrapper
+  const scrollWrap = el('div', { class: 'brand-process-scroll-wrap' });
+  const table = el('table', { class: 'brand-process-table' });
+  
+  // ─── thead — 단순 1줄 헤더 (divider는 빈 컬럼) ───
+  const thead = el('thead');
+  const allTypes = getProcessTypes();
+  
+  const headerRow = el('tr');
+  headerRow.appendChild(el('th', { class: 'col-brand sticky-col' }, '브랜드'));
+  headerRow.appendChild(el('th', { class: 'col-round' }, 'R'));
+  allTypes.forEach(pt => {
+    if (pt.isDivider) {
+      headerRow.appendChild(el('th', { class: 'col-divider' }, ''));
+    } else {
+      headerRow.appendChild(el('th', { class: 'col-process' }, pt.label));
+    }
   });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+  
+  // ─── tbody ───
+  const tbody = el('tbody');
+  brands.forEach(b => {
+    const isRisk = b.risk_flag === 'TRUE' || b.risk_flag === true;
+    const row = el('tr', { class: 'brand-row' });
+    
+    // 1열: 브랜드명 (sticky — 가로 스크롤 시 고정)
+    const brandCell = el('td', { 
+      class: 'col-brand sticky-col',
+      onclick: (e) => {
+        if (e.target.closest('.brand-cell-risk')) return;
+        STATE.filters.selected_brand = b.brand_id;
+        STATE.filters.brands_view = 'detail';
+        renderContent();
+      }
+    }, [
+      el('div', { class: 'brand-cell-name' }, [
+        el('span', { class: 'brand-cell-id' }, b.brand_id || ''),
+        el('span', { class: 'brand-cell-bname' }, b.brand_name || '?'),
+        isRisk ? el('span', { class: 'brand-cell-risk', title: '위험 플래그' }, '⚠️') : null
+      ].filter(Boolean))
+    ]);
+    row.appendChild(brandCell);
+    
+    // 2열: 라운드 칩
+    const rNum = parseInt(b.round || '0', 10);
+    const rCls = (rNum >= 1 && rNum <= 7) ? 'r' + rNum : 'gray';
+    row.appendChild(el('td', { class: 'col-round' }, 
+      b.round 
+        ? el('span', { class: 'round-chip round-' + rCls }, 'R' + b.round)
+        : el('span', { class: 'round-chip round-gray' }, '?')
+    ));
+    
+    // 3~N열: 프로세스 셀들 + divider 빈 컬럼
+    allTypes.forEach(pt => {
+      if (pt.isDivider) {
+        row.appendChild(el('td', { class: 'col-divider' }));
+        return;
+      }
+      const proc = (STATE.data.brand_processes || []).find(
+        p => p.brand_id === b.brand_id && p.process_type === pt.id
+      );
+      
+      const cell = el('td', { class: 'col-process process-cell' });
+      cell.dataset.brandId = b.brand_id;
+      cell.dataset.processType = pt.id;
+      
+      if (proc && (proc.status || proc.text || proc.date)) {
+        const status = proc.status || '대기';
+        const stat = PROCESS_STATUSES.find(s => s.id === status) || PROCESS_STATUSES[0];
+        const statusChip = el('span', { 
+          class: 'process-status-chip',
+          style: { color: stat.color, background: stat.bg }
+        }, status);
+        const text = proc.text || '';
+        const date = proc.date ? fmtDateMonthDay(proc.date) : '';
+        const time = proc.time || '';
+        const meta = (date || time) ? (date + (time ? ' ' + time : '')) : '';
+        
+        cell.appendChild(statusChip);
+        if (text) cell.appendChild(el('div', { class: 'process-cell-text' }, text));
+        if (meta) cell.appendChild(el('div', { class: 'process-cell-meta' }, meta));
+      } else {
+        cell.appendChild(el('span', { class: 'process-cell-empty' }, '—'));
+      }
+      
+      // 클릭 → 편집 popover/모달 (다음 단계에서 구현)
+      cell.onclick = (e) => {
+        e.stopPropagation();
+        openBrandProcessEdit(b, pt, proc, cell);
+      };
+      
+      row.appendChild(cell);
+    });
+    
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  scrollWrap.appendChild(table);
+  section.appendChild(scrollWrap);
   
   root.appendChild(section);
+}
+
+// ─── 브랜드 프로세스 셀 클릭 → 편집 모달 ────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// 스레드 모달 우측 사이드바 — 단계별 진행 (인라인 편집)
+// ═══════════════════════════════════════════════════════════════
+
+function buildThreadRightSidebar(thread) {
+  const brandId = thread.brand_id;
+  const wrap = el('div', { class: 'mt-detail-right-sidebar' });
+  
+  // 헤더
+  wrap.appendChild(el('div', { class: 'bp-side-header' }, '단계별 진행'));
+  
+  if (!brandId) {
+    wrap.appendChild(el('div', { 
+      style: { fontSize: '11.5px', color: 'var(--text-faint)', padding: '8px 4px' } 
+    }, '연결된 브랜드 없음'));
+    return wrap;
+  }
+  
+  // 진행중/대기 섹션 + 완료 섹션 컨테이너
+  const activeList = el('div');
+  const doneList = el('div', { class: 'bp-side-done-list' });
+  
+  // process 행 생성 (divider row 만나면 구분선/헤더 삽입)
+  const rerender = () => {
+    activeList.innerHTML = '';
+    doneList.innerHTML = '';
+    let doneCount = 0;
+    
+    const allTypes = getProcessTypes();
+    let pendingDivider = null;  // 다음 활성 항목 앞에 표시될 divider
+    let hasActiveAfterDivider = false;
+    
+    allTypes.forEach(pt => {
+      if (pt.isDivider) {
+        // divider는 보류 — 다음 활성 항목이 나올 때 같이 표시
+        pendingDivider = pt;
+        hasActiveAfterDivider = false;
+        return;
+      }
+      
+      const proc = (STATE.data.brand_processes || []).find(
+        p => p.brand_id === brandId && p.process_type === pt.id
+      );
+      const status = (proc && proc.status) || '대기';
+      const isDone = status === '완료';
+      const item = buildProcessSideItem(brandId, pt, proc, rerender);
+      
+      if (isDone) {
+        item.classList.add('is-done');
+        doneList.appendChild(item);
+        doneCount++;
+      } else {
+        // pendingDivider 있으면 먼저 추가 (첫 활성 항목 직전)
+        if (pendingDivider && !hasActiveAfterDivider) {
+          const divEl = el('div', { class: 'bp-side-divider' });
+          if (pendingDivider.label) {
+            divEl.appendChild(el('span', { class: 'bp-side-divider-label' }, pendingDivider.label));
+          }
+          activeList.appendChild(divEl);
+          hasActiveAfterDivider = true;
+        }
+        activeList.appendChild(item);
+      }
+    });
+    
+    // 완료 토글 텍스트 갱신
+    doneCountEl.textContent = doneCount > 0 ? `완료됨 (${doneCount}개)` : '완료됨';
+    doneSection.style.display = doneCount > 0 ? '' : 'none';
+  };
+  
+  wrap.appendChild(activeList);
+  
+  // 완료 토글 섹션
+  const doneArrow = el('span', { class: 'bp-side-done-arrow' }, '▸');
+  const doneCountEl = el('span', {}, '완료됨');
+  const doneSection = el('div', {});
+  const doneToggle = el('div', { 
+    class: 'bp-side-done-toggle',
+    onclick: () => {
+      doneToggle.classList.toggle('open');
+      doneList.classList.toggle('open');
+    }
+  }, [doneArrow, doneCountEl]);
+  doneSection.appendChild(doneToggle);
+  doneSection.appendChild(doneList);
+  wrap.appendChild(doneSection);
+  
+  rerender();
+  return wrap;
+}
+
+function buildProcessSideItem(brandId, processType, existingProc, onAfterSave) {
+  const proc = existingProc || {};
+  const status = proc.status || '대기';
+  const stConf = PROCESS_STATUSES.find(s => s.id === status) || PROCESS_STATUSES[0];
+  
+  const item = el('div', { 
+    class: 'bp-side-item' + (status === '이슈' ? ' is-issue' : '') 
+  });
+  
+  // 상단 row: 라벨 + 상태 칩
+  const label = el('div', { class: 'bp-side-label' }, processType.label);
+  
+  const chip = el('div', { 
+    class: 'bp-side-chip',
+    style: { background: stConf.bg, color: stConf.color },
+    onclick: (e) => {
+      e.stopPropagation();
+      showProcessStatusDropdown(chip, brandId, processType.id, proc, onAfterSave);
+    }
+  }, status);
+  
+  const topRow = el('div', { class: 'bp-side-row' }, [label, chip]);
+  item.appendChild(topRow);
+  
+  // 메모 (클릭 시 textarea)
+  const memoText = proc.text || '';
+  const memoEl = el('div', { 
+    class: 'bp-side-memo' + (memoText ? '' : ' is-placeholder'),
+    onclick: () => {
+      // textarea로 교체
+      const ta = el('textarea', { 
+        class: 'bp-side-memo-edit',
+        placeholder: '메모 입력'
+      });
+      ta.value = memoText;
+      memoEl.replaceWith(ta);
+      ta.focus();
+      ta.select();
+      
+      const save = async () => {
+        const newText = ta.value.trim();
+        if (newText === memoText) {
+          // 변경 없음 — 원복
+          ta.replaceWith(memoEl);
+          return;
+        }
+        try {
+          if (proc.process_id) {
+            // 업데이트
+            await apiUpdate('brand_processes', proc.process_id, { text: newText });
+            proc.text = newText;
+          } else {
+            // 새로 생성 — apiCreate가 자동으로 STATE.data.brand_processes에 push함
+            await apiCreate('brand_processes', {
+              brand_id: brandId,
+              process_type: processType.id,
+              status: '대기',
+              text: newText,
+              checklist_json: ''
+            });
+          }
+          toast('✓ 저장됨', 'ok');
+          if (onAfterSave) onAfterSave();
+        } catch (err) {
+          console.error('brand_processes 저장 실패:', err);
+          toast('저장 실패: ' + (err.message || '오류') + ' (시트 확인 필요)', 'err');
+          ta.replaceWith(memoEl);
+        }
+      };
+      
+      ta.addEventListener('blur', save);
+      ta.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          ta.value = memoText;
+          ta.replaceWith(memoEl);
+        } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          ta.blur();
+        }
+      });
+    }
+  }, memoText || '+ 메모 추가');
+  item.appendChild(memoEl);
+  
+  return item;
+}
+
+function showProcessStatusDropdown(anchorEl, brandId, processTypeId, existingProc, onAfterSave) {
+  // 기존 popup 제거
+  document.querySelectorAll('.bp-side-status-pop').forEach(p => p.remove());
+  
+  const popup = el('div', { class: 'bp-side-status-pop' });
+  PROCESS_STATUSES.forEach(s => {
+    const opt = el('div', { 
+      class: 'bp-side-status-opt',
+      style: { color: s.color },
+      onclick: async (e) => {
+        e.stopPropagation();
+        popup.remove();
+        // 저장
+        try {
+          if (existingProc && existingProc.process_id) {
+            await apiUpdate('brand_processes', existingProc.process_id, { status: s.id });
+            existingProc.status = s.id;
+          } else {
+            // apiCreate가 자동으로 STATE.data.brand_processes에 push함
+            await apiCreate('brand_processes', {
+              brand_id: brandId,
+              process_type: processTypeId,
+              status: s.id,
+              text: '',
+              checklist_json: ''
+            });
+          }
+          toast('✓ 상태 변경: ' + s.id, 'ok');
+          if (onAfterSave) onAfterSave();
+        } catch (err) {
+          console.error('brand_processes 저장 실패:', err);
+          toast('저장 실패: ' + (err.message || '오류') + ' (시트 확인 필요)', 'err');
+        }
+      }
+    }, s.id);
+    popup.appendChild(opt);
+  });
+  
+  document.body.appendChild(popup);
+  
+  // 위치 계산 (anchor 아래쪽)
+  const rect = anchorEl.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 4) + 'px';
+  popup.style.left = Math.max(8, rect.left) + 'px';
+  
+  // 외부 클릭 시 닫기
+  setTimeout(() => {
+    const closeHandler = (e) => {
+      if (!popup.contains(e.target)) {
+        popup.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    document.addEventListener('click', closeHandler);
+  }, 0);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Process Popover — 단계별 비교 표 셀 클릭 시 뜸 (× / Esc로만 닫힘)
+// ═══════════════════════════════════════════════════════════════
+let _activeProcessPopover = null;
+
+function closeProcessPopover() {
+  if (_activeProcessPopover) {
+    if (_activeProcessPopover._cleanup) _activeProcessPopover._cleanup();
+    _activeProcessPopover.remove();
+    _activeProcessPopover = null;
+  }
+}
+
+function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
+  closeProcessPopover();  // 기존 popover 닫기
+  
+  // popover 구조
+  const closeBtn = el('button', { 
+    class: 'bp-popover-close', 
+    type: 'button',
+    onclick: () => closeProcessPopover()
+  }, '×');
+  
+  const headerEl = el('div', { class: 'bp-popover-header' }, [
+    el('div', { class: 'bp-popover-title' }, title),
+    closeBtn
+  ]);
+  
+  const bodyEl = el('div', {}, [body].filter(Boolean));
+  const footerEl = footer ? el('div', { class: 'bp-popover-footer' }, footer) : null;
+  
+  const popover = el('div', { class: 'bp-popover' }, [
+    headerEl,
+    bodyEl,
+    footerEl
+  ].filter(Boolean));
+  
+  document.body.appendChild(popover);
+  _activeProcessPopover = popover;
+  
+  // ─── 위치 계산 (anchor 기준 위/아래 자동) ───
+  const positionPopover = () => {
+    if (!anchorEl || !document.body.contains(anchorEl)) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const popH = popover.offsetHeight || 400;
+    const popW = popover.offsetWidth || 380;
+    const viewH = window.innerHeight;
+    const viewW = window.innerWidth;
+    const spaceBelow = viewH - rect.bottom;
+    const spaceAbove = rect.top;
+    
+    // 위/아래 결정 — 아래 공간 우선, 부족하면 위로
+    let top, useBelow;
+    if (spaceBelow >= popH + 20 || spaceBelow >= spaceAbove) {
+      top = rect.bottom + 12;
+      useBelow = true;
+    } else {
+      top = rect.top - popH - 12;
+      useBelow = false;
+    }
+    
+    // 좌측 위치 (anchor 좌측 기준, 화면 밖 안 나가게)
+    let left = rect.left;
+    if (left + popW > viewW - 16) left = viewW - popW - 16;
+    if (left < 8) left = 8;
+    
+    popover.style.top = top + 'px';
+    popover.style.left = left + 'px';
+    
+    // 말꼬리 위치 — anchor 중앙과 일치되게
+    popover.classList.toggle('above', !useBelow);
+    popover.classList.toggle('below', useBelow);
+    
+    // 말꼬리 좌측 오프셋 (anchor 중앙 - popover 좌측)
+    const arrowOffset = Math.max(8, Math.min(popW - 22, rect.left + (rect.width / 2) - left - 7));
+    // ::before / ::after를 위한 인라인 CSS 변수
+    popover.style.setProperty('--arrow-left', arrowOffset + 'px');
+  };
+  
+  // 첫 위치 계산 (paint 후)
+  requestAnimationFrame(positionPopover);
+  
+  // 스크롤/리사이즈 시 재계산
+  const onScrollOrResize = () => positionPopover();
+  document.addEventListener('scroll', onScrollOrResize, true);
+  window.addEventListener('resize', onScrollOrResize);
+  
+  // Esc 키 닫기
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      closeProcessPopover();
+    }
+  };
+  document.addEventListener('keydown', onKeyDown);
+  
+  // cleanup
+  popover._cleanup = () => {
+    document.removeEventListener('scroll', onScrollOrResize, true);
+    window.removeEventListener('resize', onScrollOrResize);
+    document.removeEventListener('keydown', onKeyDown);
+    if (onClose) onClose();
+  };
+  
+  return popover;
+}
+
+function openBrandProcessEdit(brand, processType, existingProc, anchorEl) {
+  const proc = existingProc || {
+    brand_id: brand.brand_id,
+    process_type: processType.id,
+    status: '대기',
+    text: '',
+    owner_id: '',
+    date: '',
+    time: '',
+    checklist_json: '[]'
+  };
+  
+  // ─── 상태 4개 칩
+  let currentStatus = proc.status || '대기';
+  const statusRow = el('div', { class: 'bp-status-row' });
+  const statusChips = [];
+  PROCESS_STATUSES.forEach(s => {
+    const chip = el('button', { 
+      class: 'bp-status-chip' + (s.id === currentStatus ? ' active' : ''),
+      style: { 
+        color: s.color, 
+        background: s.id === currentStatus ? s.bg : 'transparent',
+        borderColor: s.id === currentStatus ? s.color : 'var(--border)'
+      },
+      onclick: (e) => {
+        e.preventDefault();
+        currentStatus = s.id;
+        statusChips.forEach(c => {
+          const cs = PROCESS_STATUSES.find(x => x.id === c.dataset.statusId);
+          c.classList.toggle('active', cs.id === currentStatus);
+          c.style.background = cs.id === currentStatus ? cs.bg : 'transparent';
+          c.style.borderColor = cs.id === currentStatus ? cs.color : 'var(--border)';
+        });
+      }
+    }, s.id);
+    chip.dataset.statusId = s.id;
+    statusChips.push(chip);
+    statusRow.appendChild(chip);
+  });
+  
+  // ─── 메모 텍스트
+  const textInput = el('textarea', { 
+    class: 'mp-input',
+    placeholder: '메모 (예: 계약서 확인 완료, 날인 진행 예정)',
+    style: { minHeight: '60px', fontSize: '13px' }
+  });
+  textInput.value = proc.text || '';
+  
+  // ─── 담당자 (stakeholder)
+  const ownerInput = el('input', { type: 'hidden' });
+  ownerInput.value = proc.owner_id || '';
+  const ownerLabel = el('span', { class: 'bp-owner-label' }, 
+    proc.owner_id ? (nameOfStakeholder(proc.owner_id) || '') : ''
+  );
+  const ownerBtn = el('button', { 
+    class: 'bp-owner-btn' + (proc.owner_id ? ' has-owner' : ''),
+    type: 'button',
+    title: '담당자 선택',
+    onclick: (e) => {
+      e.preventDefault();
+      openStakeholderPicker(ownerBtn, [ownerInput.value].filter(Boolean), {
+        multi: false,
+        onSelect: (ids) => {
+          ownerInput.value = ids[0] || '';
+          ownerLabel.textContent = ids[0] ? (nameOfStakeholder(ids[0]) || '') : '';
+          ownerBtn.classList.toggle('has-owner', !!ids[0]);
+        }
+      });
+    }
+  }, [
+    el('span', {}, '👤'),
+    ownerLabel
+  ]);
+  
+  // ─── 날짜 + 시간
+  const dateInput = makeDateInput({ value: fmtDate(proc.date) || '' });
+  const timeInput = makeTimeInput({ value: proc.time || '' });
+  
+  // ─── 체크리스트
+  let checklist = [];
+  try {
+    checklist = JSON.parse(proc.checklist_json || '[]');
+    if (!Array.isArray(checklist)) checklist = [];
+  } catch { checklist = []; }
+  
+  const checklistWrap = el('div', { class: 'bp-checklist' });
+  const renderChecklist = () => {
+    checklistWrap.innerHTML = '';
+    checklist.forEach((item, idx) => {
+      const row = el('div', { class: 'bp-checklist-row' });
+      const cb = el('input', { 
+        type: 'checkbox',
+        onchange: () => {
+          checklist[idx].done = cb.checked;
+          renderChecklist();
+        }
+      });
+      cb.checked = item.done;
+      const text = el('input', {
+        type: 'text',
+        class: 'bp-checklist-text',
+        value: item.text || '',
+        placeholder: '체크리스트 항목',
+        onchange: () => { checklist[idx].text = text.value.trim(); }
+      });
+      if (item.done) text.style.textDecoration = 'line-through';
+      const delBtn = el('button', { 
+        class: 'bp-checklist-del',
+        title: '삭제',
+        onclick: (e) => {
+          e.preventDefault();
+          checklist.splice(idx, 1);
+          renderChecklist();
+        }
+      }, '🗑');
+      row.appendChild(cb);
+      row.appendChild(text);
+      row.appendChild(delBtn);
+      checklistWrap.appendChild(row);
+    });
+  };
+  renderChecklist();
+  
+  const addCheckBtn = el('button', { 
+    class: 'bp-checklist-add',
+    onclick: (e) => {
+      e.preventDefault();
+      checklist.push({ id: 'c' + Date.now(), text: '', done: false });
+      renderChecklist();
+      // 새 input 포커스
+      const last = checklistWrap.querySelector('.bp-checklist-row:last-child input[type="text"]');
+      if (last) last.focus();
+    }
+  }, '+ 체크리스트 항목 추가');
+  
+  // ─── 저장 함수
+  const save = async () => {
+    // 빈 체크리스트 항목 제거
+    const cleanChecklist = checklist.filter(c => (c.text || '').trim());
+    const data = {
+      brand_id: brand.brand_id,
+      process_type: processType.id,
+      status: currentStatus,
+      text: textInput.value.trim(),
+      owner_id: ownerInput.value || '',
+      date: dateInput.value || '',
+      time: parseTime4(timeInput.value) || '',
+      checklist_json: JSON.stringify(cleanChecklist)
+    };
+    try {
+      if (existingProc && existingProc.process_id) {
+        await apiUpdate('brand_processes', existingProc.process_id, data);
+      } else {
+        await apiCreate('brand_processes', data);
+      }
+      closeProcessPopover();
+      renderContent();
+      toast('✓ 저장됨', 'ok');
+    } catch (err) {
+      toast('실패: ' + err.message, 'err');
+    }
+  };
+  
+  // ─── 삭제 (기존 데이터 있을 때만)
+  const deleteBtn = existingProc && existingProc.process_id ? el('button', {
+    class: 'bp-popover-delete',
+    onclick: async () => {
+      if (!confirm('이 단계 데이터를 삭제하시겠습니까?')) return;
+      try {
+        await apiDelete('brand_processes', existingProc.process_id);
+        closeProcessPopover();
+        renderContent();
+        toast('삭제됨', 'ok');
+      } catch (err) {
+        toast('실패: ' + err.message, 'err');
+      }
+    }
+  }, '🗑 삭제') : null;
+  
+  // 자세히 영역 (담당자 + 날짜 + 시간 + 체크리스트) — 공란이면 접힘
+  const hasAnyDetail = !!(proc.owner_id || proc.date || proc.time || (Array.isArray(checklist) && checklist.length > 0));
+  
+  const detailContent = el('div', { 
+    style: { display: hasAnyDetail ? 'block' : 'none' } 
+  }, [
+    el('div', { class: 'bp-row-grid', style: { marginTop: '8px' } }, [
+      el('div', {}, [
+        el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '담당자'),
+        ownerBtn
+      ]),
+      el('div', {}, [
+        el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '날짜'),
+        dateInput
+      ]),
+      el('div', {}, [
+        el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '시간'),
+        timeInput
+      ])
+    ]),
+    el('div', { class: 'bp-popover-section-label' }, '체크리스트'),
+    checklistWrap,
+    addCheckBtn
+  ]);
+  
+  const detailToggle = el('div', { 
+    class: 'bp-detail-toggle' + (hasAnyDetail ? ' open' : ''),
+    onclick: () => {
+      const isHidden = detailContent.style.display === 'none';
+      detailContent.style.display = isHidden ? 'block' : 'none';
+      detailToggle.classList.toggle('open', isHidden);
+    }
+  }, [
+    el('span', { class: 'bp-detail-toggle-arrow' }, '▸'),
+    el('span', {}, '담당자 · 날짜 · 시간 · 체크리스트')
+  ]);
+  
+  // ─── Popover로 표시 (모달 아님)
+  openProcessPopover({
+    title: brand.brand_name + ' · ' + processType.label,
+    body: el('div', { class: 'bp-edit-form' }, [
+      el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '진행 상태'),
+      statusRow,
+      
+      el('div', { class: 'bp-popover-section-label' }, '메모'),
+      textInput,
+      
+      detailToggle,
+      detailContent
+    ]),
+    footer: [
+      deleteBtn || el('div', {}),
+      el('div', { class: 'bp-popover-actions' }, [
+        el('button', { class: 'bp-popover-btn', onclick: closeProcessPopover }, '취소'),
+        el('button', { class: 'bp-popover-btn primary', onclick: save }, '저장')
+      ])
+    ],
+    anchorEl: anchorEl
+  });
+  
+  // 달력 init (popover가 DOM에 부착된 후)
+  requestAnimationFrame(() => {
+    if (dateInput && typeof dateInput._calInit === 'function') {
+      dateInput._calInit();
+    }
+  });
 }
 
 // ─── 클릭 복사 헬퍼 ─────────────────────────────────────────
@@ -11269,10 +14341,7 @@ function confirmDelete(sheet, id) {
         const btn = el('button', { class: 'btn btn-danger' }, '삭제');
         btn.onclick = async () => {
           await withButtonLoading(btn, async () => {
-            await apiDelete(sheet, id);
-            STATE.loaded = false;
-            await apiFetchAll(true);
-          }, { loadingText: '삭제 중...', successText: '✓ 삭제됨' });
+            await apiDelete(sheet, id);          }, { loadingText: '삭제 중...', successText: '✓ 삭제됨' });
           closeModal();
           renderContent();
           renderNav();
@@ -11664,10 +14733,7 @@ function openMailThreadParseModal(defaults) {
         updateProgress(30, '스레드 ' + (r.existingThread ? '매칭' : '생성') + ' 완료');
         
         // ─── 3) STATE 1차 갱신 (30 → 40%) ───
-        updateProgress(32, '데이터 동기화 중...');
-        STATE.loaded = false;
-        await apiFetchAll(true);
-        updateProgress(40, '메일 등록 준비 완료');
+        updateProgress(32, '데이터 동기화 중...');        updateProgress(40, '메일 등록 준비 완료');
         
         // ─── 4) 각 메일을 logs로 등록 (40 → 90%) — 가장 오래 ───
         const resolveStakeId = (email) => {
@@ -11711,10 +14777,7 @@ function openMailThreadParseModal(defaults) {
         updateProgress(90, '메일 ' + saved.logs + '건 등록 완료');
         
         // ─── 5) 최종 동기화 (90 → 100%) ───
-        updateProgress(92, '최종 동기화 중...');
-        STATE.loaded = false;
-        await apiFetchAll(true);
-        updateProgress(100, '✓ 완료!');
+        updateProgress(92, '최종 동기화 중...');        updateProgress(100, '✓ 완료!');
         
         // 짧은 지연 후 모달 닫기 (사용자가 완료 메시지 확인 가능)
         await new Promise(r => setTimeout(r, 400));
@@ -11933,10 +14996,7 @@ function openMailParseModal(defaults) {
           summary: f.summary.value,
         };
         await apiCreate('logs', data);
-        session.saved++;
-        STATE.loaded = false;
-        await apiFetchAll(true);
-        mailInput.value = '';
+        session.saved++;        mailInput.value = '';
         parsedState = null;
         renderEmpty('✓ 저장됨 — 다음 메일 붙여넣기', '브랜드는 그대로 유지됩니다. 다른 브랜드면 좌측에서 변경');
         updateSession();
@@ -11994,7 +15054,7 @@ function openMailParseModal(defaults) {
 function openLogForm(existing, defaults) {
   const e = existing || defaults || {};
   const isEdit = !!existing;
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayDs();
   const now = new Date().toTimeString().slice(0,5);
   
   const calReg = [];
@@ -12030,10 +15090,7 @@ function openLogForm(existing, defaults) {
             const data = formData(form);
             await withButtonLoading(btn, async () => {
               if (isEdit) await apiUpdate('logs', existing.log_id, data);
-              else await apiCreate('logs', data);
-              STATE.loaded = false;
-              await apiFetchAll(true);
-            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
+              else await apiCreate('logs', data);            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
             closeModal();
             renderContent();
           renderNav();
@@ -12139,10 +15196,7 @@ function openStakeholderForm(existing) {
             const data = formData(form);
             await withButtonLoading(btn, async () => {
               if (isEdit) await apiUpdate('stakeholders', existing.stakeholder_id, data);
-              else await apiCreate('stakeholders', data);
-              STATE.loaded = false;
-              await apiFetchAll(true);
-            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
+              else await apiCreate('stakeholders', data);            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
             closeModal();
             renderContent();
           };
@@ -12186,10 +15240,7 @@ function openTaskForm(existing) {
           if (data.status === '완료') data.completed_at = new Date().toISOString();
           await withButtonLoading(btn, async () => {
             if (isEdit) await apiUpdate('tasks', existing.task_id, data);
-            else await apiCreate('tasks', data);
-            STATE.loaded = false;
-            await apiFetchAll(true);
-          }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
+            else await apiCreate('tasks', data);          }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
           closeModal();
           renderContent();
           renderNav();
@@ -12206,7 +15257,7 @@ function openTaskForm(existing) {
 function openDocumentForm(existing) {
   const e = existing || {};
   const isEdit = !!existing;
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayDs();
   const calReg = [];
   
   const form = el('form', { class: 'form-grid' }, [
@@ -12240,10 +15291,7 @@ function openDocumentForm(existing) {
             const data = formData(form);
             await withButtonLoading(btn, async () => {
               if (isEdit) await apiUpdate('documents', existing.doc_id, data);
-              else await apiCreate('documents', data);
-              STATE.loaded = false;
-              await apiFetchAll(true);
-            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
+              else await apiCreate('documents', data);            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
             closeModal();
             renderContent();
           };
@@ -12259,7 +15307,7 @@ function openDocumentForm(existing) {
 function openMilestoneForm(existing) {
   const e = existing || {};
   const isEdit = !!existing;
-  const today = new Date().toISOString().slice(0,10);
+  const today = todayDs();
   const calReg = [];
   
   const form = el('form', { class: 'form-grid' }, [
@@ -12288,10 +15336,7 @@ function openMilestoneForm(existing) {
             const data = formData(form);
             await withButtonLoading(btn, async () => {
               if (isEdit) await apiUpdate('milestones', existing.milestone_id, data);
-              else await apiCreate('milestones', data);
-              STATE.loaded = false;
-              await apiFetchAll(true);
-            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
+              else await apiCreate('milestones', data);            }, { loadingText: isEdit ? '저장 중...' : '추가 중...', successText: isEdit ? '✓ 수정됨' : '✓ 저장됨' });
             closeModal();
             renderContent();
           };
@@ -12343,10 +15388,7 @@ function openBrandForm(existing) {
           const data = formData(form);
           data.risk_flag = (data.risk_flag === 'TRUE');
           await withButtonLoading(btn, async () => {
-            await apiUpdate('brands', existing.brand_id, data);
-            STATE.loaded = false;
-            await apiFetchAll(true);
-          }, { loadingText: '저장 중...', successText: '✓ 수정됨' });
+            await apiUpdate('brands', existing.brand_id, data);          }, { loadingText: '저장 중...', successText: '✓ 수정됨' });
           closeModal();
           renderContent();
         };
