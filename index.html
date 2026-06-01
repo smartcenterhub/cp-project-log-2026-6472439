@@ -1234,10 +1234,24 @@
   }
   .parse-result-table .from-cell { width: 100px; font-weight: 500; }
   .parse-result-table .subj-cell {
-    max-width: 320px;
+    max-width: 240px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  .parse-result-table .body-cell {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .parse-result-table tr.parse-row-editable {
+    cursor: pointer;
+  }
+  .parse-result-table tr.parse-row-editable:hover {
+    background: rgba(79,70,229,0.04);
   }
   .parse-result-table .warn-cell {
     color: var(--warn, #f59e0b);
@@ -2849,6 +2863,61 @@
   }
   .brand-process-table .col-brand { width: 180px; min-width: 180px; }
   .brand-process-table .col-round { width: 48px; min-width: 48px; text-align: center; }
+  /* ━━━━━━ 단계별 비교 표 — 열 숨기기 필터 ━━━━━━ */
+  .col-toggle-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 11.5px;
+  }
+  .col-toggle-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+    text-transform: uppercase;
+  }
+  .col-toggle-chip {
+    font-size: 10.5px;
+    padding: 3px 9px;
+    border-radius: 11px;
+    background: rgba(79, 70, 229, 0.10);
+    color: var(--accent, #4f46e5);
+    cursor: pointer;
+    border: 1px solid rgba(79, 70, 229, 0.22);
+    font-weight: 500;
+    user-select: none;
+    transition: all 0.1s;
+    line-height: 1.3;
+  }
+  .col-toggle-chip:hover { filter: brightness(0.95); }
+  .col-toggle-chip.is-hidden {
+    background: transparent;
+    color: var(--text-faint);
+    border-color: var(--border-strong);
+    text-decoration: line-through;
+  }
+  .col-toggle-reset {
+    margin-left: auto;
+    font-size: 10.5px;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 3px 7px;
+    border-radius: 5px;
+    user-select: none;
+  }
+  .col-toggle-reset:hover {
+    color: var(--text);
+    background: rgba(0, 0, 0, 0.04);
+  }
+  
   .brand-process-table .col-process { width: 160px; min-width: 160px; }
   /* 단계별 비교 표 — divider 컬럼 (좁은 빈 구분선) */
   .brand-process-table .col-divider {
@@ -5181,6 +5250,30 @@
     border-color: rgba(236, 72, 153, 0.4); 
   }
   .mt-tl-event.tl-type-메모.expanded { background: rgba(236, 72, 153, 0.09); }
+  
+  /* ━━━━━━ 발신/수신 농도 차이 ━━━━━━ */
+  /* 발신 (내가 보낸 거) — 진하게 */
+  .mt-tl-event.tl-type-메일.dir-out { 
+    background: rgba(234, 179, 8, 0.10); 
+    border-color: rgba(234, 179, 8, 0.45); 
+  }
+  .mt-tl-event.tl-type-메일.dir-out:hover { 
+    background: rgba(234, 179, 8, 0.16); 
+    border-color: rgba(234, 179, 8, 0.65); 
+  }
+  .mt-tl-event.tl-type-메일.dir-out.expanded { background: rgba(234, 179, 8, 0.18); }
+  
+  .mt-tl-event.tl-type-통화.dir-out { 
+    background: rgba(34, 197, 94, 0.10); 
+    border-color: rgba(34, 197, 94, 0.45); 
+  }
+  .mt-tl-event.tl-type-통화.dir-out:hover { 
+    background: rgba(34, 197, 94, 0.16); 
+    border-color: rgba(34, 197, 94, 0.65); 
+  }
+  .mt-tl-event.tl-type-통화.dir-out.expanded { background: rgba(34, 197, 94, 0.18); }
+  
+  /* 수신 (받은 거) — 옅게 그대로 (기존 기본값과 동일) */
   .mt-tl-date {
     font-size: 12px;
     font-weight: 600;
@@ -5406,12 +5499,59 @@
     .mt-tl-event { grid-template-columns: 1fr; gap: 4px; }
   }
 
+  /* ━━━━━━ 모바일 햄버거 메뉴 ━━━━━━ */
+  .mobile-hamburger {
+    display: none;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 90;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 0.5px solid var(--border);
+    background: white;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    color: var(--text);
+  }
+  .mobile-hamburger:hover { background: rgba(0, 0, 0, 0.03); }
+  
+  .mobile-sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 80;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .mobile-sidebar-overlay.show {
+    display: block;
+    opacity: 1;
+  }
+  
   @media (max-width: 900px) {
     .app { grid-template-columns: 1fr; }
-    .sidebar { display: none; }
+    .sidebar { 
+      display: flex !important;
+      position: fixed;
+      top: 0;
+      left: -280px;
+      width: 260px;
+      height: 100vh;
+      z-index: 85;
+      transition: left 0.22s ease-out;
+      box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+    }
+    .sidebar.mobile-open { left: 0; }
+    .mobile-hamburger { display: flex; align-items: center; justify-content: center; }
     .form-grid { grid-template-columns: 1fr; }
     .detail-grid { grid-template-columns: 1fr; }
     .task-board { grid-template-columns: 1fr 1fr; }
+    /* 메인 콘텐츠 상단 여백 (햄버거 가려지지 않게) */
+    .topbar { padding-left: 60px; }
   }
 </style>
 </head>
@@ -5555,6 +5695,28 @@ function getProcessTypesByGroup() {
 // 하위 호환 — 옛 PROCESS_TYPES 이름 그대로 (시트 데이터 반영 안 됨, 점진적 교체 중)
 // 직접 사용 자제 — getProcessTypes() 사용 권장
 const PROCESS_TYPES = PROCESS_TYPES_FALLBACK;
+
+// ━━━━━━ 단계별 비교 표 — 열 숨기기 (localStorage 저장) ━━━━━━
+const HIDDEN_COLS_KEY = 'bp-compare-hidden-cols';
+function getHiddenCols() {
+  try {
+    const v = localStorage.getItem(HIDDEN_COLS_KEY);
+    return v ? JSON.parse(v) : [];
+  } catch { return []; }
+}
+function setHiddenCols(arr) {
+  try { localStorage.setItem(HIDDEN_COLS_KEY, JSON.stringify(arr)); } catch {}
+}
+function toggleHiddenCol(id) {
+  const hidden = getHiddenCols();
+  const i = hidden.indexOf(id);
+  if (i >= 0) hidden.splice(i, 1);
+  else hidden.push(id);
+  setHiddenCols(hidden);
+}
+function isColHidden(id) {
+  return getHiddenCols().indexOf(id) >= 0;
+}
 
 // 프로세스 상태 4가지
 const PROCESS_STATUSES = [
@@ -6350,7 +6512,9 @@ function makeDateInput(opts) {
   // DOM에 붙은 후 calInit 호출 — 모달 열린 후
   wrap._calInit = () => {
     if (!CAL_STATE[uid]) {
-      calInit(uid, { value: opts.value || '', inputId: inputId });
+      // hiddenInput.value 우선 (setter로 변경됐을 수도 있음 — fillFormFromLog 같은 케이스)
+      const currentVal = hiddenInput.value || opts.value || '';
+      calInit(uid, { value: currentVal, inputId: inputId });
       calRender(uid);
     }
   };
@@ -7319,6 +7483,31 @@ function renderApp() {
   const app = document.getElementById('app');
   app.innerHTML = '';
   
+  // 모바일 햄버거 버튼 (좌측 상단 floating)
+  const hamburgerBtn = el('button', { 
+    class: 'mobile-hamburger',
+    id: 'mobileHamburger',
+    'aria-label': '메뉴',
+    onclick: () => {
+      const sb = document.querySelector('.sidebar');
+      const ov = document.getElementById('mobileSidebarOverlay');
+      sb.classList.toggle('mobile-open');
+      ov.classList.toggle('show');
+    }
+  }, '☰');
+  
+  // 모바일 오버레이 (사이드바 옆 어두운 영역)
+  const mobileOverlay = el('div', { 
+    class: 'mobile-sidebar-overlay',
+    id: 'mobileSidebarOverlay',
+    onclick: () => {
+      document.querySelector('.sidebar').classList.remove('mobile-open');
+      document.getElementById('mobileSidebarOverlay').classList.remove('show');
+    }
+  });
+  app.appendChild(hamburgerBtn);
+  app.appendChild(mobileOverlay);
+  
   // 사이드바
   const sidebar = el('aside', { class: 'sidebar' }, [
     el('div', { class: 'brand' }, [
@@ -7381,6 +7570,11 @@ function navigate(pageId) {
   renderNav();
   renderTopbar();
   renderContent();
+  // 모바일에서 페이지 전환 시 사이드바 자동 닫기
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('mobileSidebarOverlay');
+  if (sb) sb.classList.remove('mobile-open');
+  if (ov) ov.classList.remove('show');
 }
 
 function renderTopbar() {
@@ -8913,7 +9107,9 @@ function openMailThreadDetail(t) {
     }, '🔗');
     
     const event = el('div', { 
-      class: 'mt-tl-event tl-type-' + (l.type || '메일'), 
+      class: 'mt-tl-event tl-type-' + (l.type || '메일') + ' ' +
+             (l.direction === '발신' ? 'dir-out' : 
+              l.direction === '수신' ? 'dir-in' : 'dir-none'), 
       'data-log-id': l.log_id  // 핵심 흐름에서 스크롤 타겟용
     }, [
       el('div', {}, [
@@ -10794,6 +10990,126 @@ function openMailEditForm(thread, existingLog, options) {
   let parsedMails = [];        // [{m, fromStk, toStks, ccStks, attaches}, ...]
   let parsedSelections = [];   // [true/false] — 체크 상태
   
+  // ─── 더블클릭 시 popover로 임시 편집 ───
+  const openParsedMailPopover = (idx, rowEl) => {
+    const p = parsedMails[idx];
+    const m = p.m;
+    
+    // 필드 input들 (현재 값으로 초기화)
+    const dateInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: m.date || '', 
+      placeholder: 'YYYY-MM-DD',
+      style: { fontSize: '12px' }
+    });
+    const timeInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: m.time || '', 
+      placeholder: 'HH:MM:SS',
+      style: { fontSize: '12px' }
+    });
+    const fromInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: m.from_email || '', 
+      placeholder: '발신자 이메일',
+      style: { fontSize: '12px' }
+    });
+    const toInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: (m.to_emails || []).join(', '), 
+      placeholder: '수신자 이메일 (콤마 구분)',
+      style: { fontSize: '12px' }
+    });
+    const ccInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: (m.cc_emails || []).join(', '), 
+      placeholder: '참조 이메일 (콤마 구분)',
+      style: { fontSize: '12px' }
+    });
+    const subjectInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: m.subject || '', 
+      placeholder: '제목',
+      style: { fontSize: '12px' }
+    });
+    const bodyInput = el('textarea', { 
+      class: 'mp-input', 
+      placeholder: '본문',
+      style: { fontSize: '12px', minHeight: '120px', lineHeight: '1.4' }
+    });
+    bodyInput.value = m.body || '';
+    const onelinerInput = el('input', { 
+      type: 'text', class: 'mp-input', 
+      value: m.oneliner || '', 
+      placeholder: '한 줄 요약 (선택)',
+      style: { fontSize: '12px' }
+    });
+    
+    const apply = () => {
+      // 임시 적용 (시트 저장 X — parsedMails 객체에만 직접 반영)
+      m.date = dateInput.value.trim();
+      m.time = timeInput.value.trim();
+      m.from_email = fromInput.value.trim();
+      m.to_emails = toInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      m.cc_emails = ccInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      m.subject = subjectInput.value.trim();
+      m.body = bodyInput.value;
+      m.oneliner = onelinerInput.value.trim();
+      
+      // stakeholder 재계산 (이메일 변경됐을 수 있음)
+      p.fromStk = m.from_email ? findStakeholderByEmail(m.from_email) : null;
+      p.toStks = m.to_emails.map(e => findStakeholderByEmail(e)).filter(Boolean);
+      p.ccStks = m.cc_emails.map(e => findStakeholderByEmail(e)).filter(Boolean);
+      
+      closeProcessPopover();
+      renderParseResults();
+      toast('✓ 수정 적용 (일괄 등록 시 시트 저장됨)', 'ok');
+    };
+    
+    const sectionLabel = (text) => el('div', { 
+      class: 'bp-popover-section-label', 
+      style: { marginTop: '8px' } 
+    }, text);
+    
+    openProcessPopover({
+      title: '메일 수정 · 행 ' + (idx + 1),
+      body: el('div', { style: { display: 'flex', flexDirection: 'column', gap: '0' } }, [
+        // 날짜 + 시간 한 줄
+        el('div', { style: { display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: '6px' } }, [
+          el('div', {}, [
+            el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '날짜'),
+            dateInput
+          ]),
+          el('div', {}, [
+            el('div', { class: 'bp-popover-section-label', style: { marginTop: '0' } }, '시간'),
+            timeInput
+          ])
+        ]),
+        sectionLabel('발신자 이메일'),
+        fromInput,
+        sectionLabel('수신자 이메일'),
+        toInput,
+        sectionLabel('참조 이메일'),
+        ccInput,
+        sectionLabel('제목'),
+        subjectInput,
+        sectionLabel('한 줄 요약'),
+        onelinerInput,
+        sectionLabel('본문'),
+        bodyInput
+      ]),
+      footer: [
+        el('div', {}),
+        el('div', { class: 'bp-popover-actions' }, [
+          el('button', { class: 'bp-popover-btn', onclick: closeProcessPopover }, '취소'),
+          el('button', { class: 'bp-popover-btn primary', onclick: apply }, '적용')
+        ])
+      ],
+      anchorEl: rowEl,
+      width: 520
+    });
+  };
+  
   const renderParseResults = () => {
     parseResultArea.innerHTML = '';
     if (parsedMails.length === 0) {
@@ -10828,7 +11144,8 @@ function openMailEditForm(thread, existingLog, options) {
         el('th', { class: 'checkbox-cell' }, ''),
         el('th', { class: 'date-cell' }, '날짜'),
         el('th', { class: 'from-cell' }, '발신자'),
-        el('th', {}, '제목'),
+        el('th', { class: 'subj-cell' }, '제목'),
+        el('th', { class: 'body-cell' }, '내용'),
         el('th', {}, '비고')
       ])
     ]);
@@ -10858,13 +11175,28 @@ function openMailEditForm(thread, existingLog, options) {
         ? (p.fromStk.name_ko || p.fromStk.name_en || '?') 
         : (m.from_name || m.from_email || '?');
       
-      const tr = el('tr', { class: p.duplicate ? 'parse-dup-row' : '' }, [
+      // 본문 미리보기 (앞 60자)
+      const bodyText = (m.body || '').replace(/\n+/g, ' ').trim();
+      const bodyPreview = bodyText ? (bodyText.slice(0, 60) + (bodyText.length > 60 ? '…' : '')) : '(내용 없음)';
+      
+      const tr = el('tr', { 
+        class: (p.duplicate ? 'parse-dup-row' : '') + ' parse-row-editable',
+        title: '더블클릭하여 수정'
+      }, [
         el('td', { class: 'checkbox-cell' }, [cb]),
         el('td', { class: 'date-cell' }, (m.date || '?') + (m.time ? ' ' + m.time.slice(0,5) : '')),
         el('td', { class: 'from-cell' }, fromLabel),
         el('td', { class: 'subj-cell', title: m.subject || '' }, m.subject || '(제목 없음)'),
+        el('td', { class: 'body-cell', title: m.body || '' }, bodyPreview),
         el('td', { class: warnings.length ? 'warn-cell' : '' }, warnings.join(', ') || '✓')
       ]);
+      
+      // 더블클릭 → popover 편집
+      tr.addEventListener('dblclick', (e) => {
+        if (e.target === cb) return;  // 체크박스 클릭은 별도
+        openParsedMailPopover(i, tr);
+      });
+      
       tbody.appendChild(tr);
     });
     table.appendChild(tbody);
@@ -12218,13 +12550,59 @@ function renderBrandsCompareView(root) {
   
   const section = el('div', { class: 'brands-compare-section' });
   
+  // ─── 열 표시 필터 ───
+  const allTypesAll = getProcessTypes();  // divider 포함
+  const allProcessTypes = allTypesAll.filter(pt => !pt.isDivider);  // process만
+  
+  const filterArea = el('div', { class: 'col-toggle-filter' }, [
+    el('span', { class: 'col-toggle-label' }, '🎯 열 표시'),
+    ...allProcessTypes.map(pt => {
+      const isHidden = isColHidden(pt.id);
+      return el('span', { 
+        class: 'col-toggle-chip' + (isHidden ? ' is-hidden' : ''),
+        onclick: () => {
+          toggleHiddenCol(pt.id);
+          renderContent();
+        }
+      }, pt.label);
+    }),
+    // 모두 보이기 버튼
+    el('span', { 
+      class: 'col-toggle-reset',
+      onclick: () => {
+        setHiddenCols([]);
+        renderContent();
+      }
+    }, '↺ 모두 보기')
+  ]);
+  section.appendChild(filterArea);
+  
+  // ─── visible 컬럼 (divider는 그룹 내 visible이 있을 때만 표시) ───
+  const visibleTypes = [];
+  let pendingDivider = null;
+  let hasVisibleAfterDivider = false;
+  
+  allTypesAll.forEach(pt => {
+    if (pt.isDivider) {
+      pendingDivider = pt;
+      hasVisibleAfterDivider = false;
+      return;
+    }
+    if (isColHidden(pt.id)) return;
+    if (pendingDivider && !hasVisibleAfterDivider) {
+      visibleTypes.push(pendingDivider);
+      hasVisibleAfterDivider = true;
+    }
+    visibleTypes.push(pt);
+  });
+  
   // 가로 스크롤 wrapper
   const scrollWrap = el('div', { class: 'brand-process-scroll-wrap' });
   const table = el('table', { class: 'brand-process-table' });
   
   // ─── thead — 단순 1줄 헤더 (divider는 빈 컬럼) ───
   const thead = el('thead');
-  const allTypes = getProcessTypes();
+  const allTypes = visibleTypes;  // 이후 코드는 visibleTypes 사용
   
   const headerRow = el('tr');
   headerRow.appendChild(el('th', { class: 'col-brand sticky-col' }, '브랜드'));
@@ -12573,8 +12951,9 @@ function closeProcessPopover() {
   }
 }
 
-function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
+function openProcessPopover({ title, body, footer, anchorEl, width, onClose }) {
   closeProcessPopover();  // 기존 popover 닫기
+  const popW = width || 380;
   
   // popover 구조
   const closeBtn = el('button', { 
@@ -12591,7 +12970,10 @@ function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
   const bodyEl = el('div', {}, [body].filter(Boolean));
   const footerEl = footer ? el('div', { class: 'bp-popover-footer' }, footer) : null;
   
-  const popover = el('div', { class: 'bp-popover' }, [
+  const popover = el('div', { 
+    class: 'bp-popover',
+    style: { width: popW + 'px' }
+  }, [
     headerEl,
     bodyEl,
     footerEl
@@ -12605,7 +12987,7 @@ function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
     if (!anchorEl || !document.body.contains(anchorEl)) return;
     const rect = anchorEl.getBoundingClientRect();
     const popH = popover.offsetHeight || 400;
-    const popW = popover.offsetWidth || 380;
+    const popWidth = popover.offsetWidth || popW;
     const viewH = window.innerHeight;
     const viewW = window.innerWidth;
     const spaceBelow = viewH - rect.bottom;
@@ -12623,7 +13005,7 @@ function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
     
     // 좌측 위치 (anchor 좌측 기준, 화면 밖 안 나가게)
     let left = rect.left;
-    if (left + popW > viewW - 16) left = viewW - popW - 16;
+    if (left + popWidth > viewW - 16) left = viewW - popWidth - 16;
     if (left < 8) left = 8;
     
     popover.style.top = top + 'px';
@@ -12634,8 +13016,7 @@ function openProcessPopover({ title, body, footer, anchorEl, onClose }) {
     popover.classList.toggle('below', useBelow);
     
     // 말꼬리 좌측 오프셋 (anchor 중앙 - popover 좌측)
-    const arrowOffset = Math.max(8, Math.min(popW - 22, rect.left + (rect.width / 2) - left - 7));
-    // ::before / ::after를 위한 인라인 CSS 변수
+    const arrowOffset = Math.max(8, Math.min(popWidth - 22, rect.left + (rect.width / 2) - left - 7));
     popover.style.setProperty('--arrow-left', arrowOffset + 'px');
   };
   
