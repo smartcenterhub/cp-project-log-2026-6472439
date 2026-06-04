@@ -2919,6 +2919,20 @@
   }
   
   .brand-process-table .col-process { width: 160px; min-width: 160px; }
+  /* 정렬 가능한 헤더 */
+  .brand-process-table th.sortable-col {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.1s;
+  }
+  .brand-process-table th.sortable-col:hover {
+    background: rgba(79, 70, 229, 0.05);
+  }
+  .brand-process-table th.sortable-col.is-sorted {
+    color: var(--accent, #4f46e5);
+    background: rgba(79, 70, 229, 0.08);
+    font-weight: 700;
+  }
   /* 단계별 비교 표 — divider 컬럼 (좁은 빈 구분선) */
   .brand-process-table .col-divider {
     width: 12px;
@@ -5716,6 +5730,59 @@ function toggleHiddenCol(id) {
 }
 function isColHidden(id) {
   return getHiddenCols().indexOf(id) >= 0;
+}
+
+// ━━━━━━ 단계별 비교 표 — 정렬 ━━━━━━
+// 상태 우선순위 (작을수록 위)
+const COMPARE_STATUS_ORDER = { '완료': 1, '진행중': 2, '대기': 3, '이슈': 4 };
+
+function getBrandStatusOrder(brand, processTypeId) {
+  const proc = (STATE.data.brand_processes || []).find(
+    p => p.brand_id === brand.brand_id && p.process_type === processTypeId
+  );
+  const status = (proc && proc.status) || '대기';
+  return COMPARE_STATUS_ORDER[status] || 99;
+}
+
+function sortBrandsForCompare(brands, sortKey, sortDir) {
+  const sorted = brands.slice();
+  
+  if (!sortKey) {
+    // 기본: round → brand_id
+    sorted.sort((a, b) => {
+      const ra = parseInt(a.round || '999', 10);
+      const rb = parseInt(b.round || '999', 10);
+      if (ra !== rb) return ra - rb;
+      return (a.brand_id || '').localeCompare(b.brand_id || '');
+    });
+    return sorted;
+  }
+  
+  if (sortKey === 'brand') {
+    sorted.sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
+  } else if (sortKey === 'round') {
+    sorted.sort((a, b) => {
+      const ra = parseInt(a.round || '999', 10);
+      const rb = parseInt(b.round || '999', 10);
+      if (ra !== rb) return ra - rb;
+      return (a.brand_id || '').localeCompare(b.brand_id || '');
+    });
+  } else if (sortKey.indexOf('pt:') === 0) {
+    const ptId = sortKey.slice(3);
+    sorted.sort((a, b) => {
+      const oa = getBrandStatusOrder(a, ptId);
+      const ob = getBrandStatusOrder(b, ptId);
+      if (oa !== ob) return oa - ob;
+      // 같은 상태면 round → brand_id로 tie-break
+      const ra = parseInt(a.round || '999', 10);
+      const rb = parseInt(b.round || '999', 10);
+      if (ra !== rb) return ra - rb;
+      return (a.brand_id || '').localeCompare(b.brand_id || '');
+    });
+  }
+  
+  if (sortDir === 'desc') sorted.reverse();
+  return sorted;
 }
 
 // 프로세스 상태 4가지
@@ -12540,13 +12607,12 @@ function renderBrands(root) {
 
 // ─── 단계별 비교 뷰 (라운드 컬럼 + 9개 프로세스 + 가로 스크롤) ──────
 function renderBrandsCompareView(root) {
-  // 정렬: round → brand_id
-  const brands = (STATE.data.brands || []).slice().sort((a, b) => {
-    const ra = parseInt(a.round || '999', 10);
-    const rb = parseInt(b.round || '999', 10);
-    if (ra !== rb) return ra - rb;
-    return (a.brand_id || '').localeCompare(b.brand_id || '');
-  });
+  // 정렬 상태
+  STATE.filters.compareSort = STATE.filters.compareSort || { key: null, dir: 'asc' };
+  const { key: sortKey, dir: sortDir } = STATE.filters.compareSort;
+  
+  // 정렬된 브랜드 목록
+  const brands = sortBrandsForCompare(STATE.data.brands || [], sortKey, sortDir);
   
   const section = el('div', { class: 'brands-compare-section' });
   
@@ -12554,7 +12620,25 @@ function renderBrandsCompareView(root) {
   const allTypesAll = getProcessTypes();  // divider 포함
   const allProcessTypes = allTypesAll.filter(pt => !pt.isDivider);  // process만
   
-  const filterArea = el('div', { class: 'col-toggle-filter' }, [
+  // 헤더 클릭 핸들러 (정렬 토글)
+  const toggleSort = (key) => {
+    if (STATE.filters.compareSort.key === key) {
+      // 같은 키 → 방향 토글
+      STATE.filters.compareSort.dir = STATE.filters.compareSort.dir === 'asc' ? 'desc' : 'asc';
+    } else {
+      // 새 키 → asc부터
+      STATE.filters.compareSort = { key: key, dir: 'asc' };
+    }
+    renderContent();
+  };
+  
+  // 화살표 아이콘 (현재 정렬 키만 표시)
+  const sortArrow = (key) => {
+    if (sortKey !== key) return '';
+    return sortDir === 'asc' ? ' ▼' : ' ▲';
+  };
+  
+  const filterChips = [
     el('span', { class: 'col-toggle-label' }, '🎯 열 표시'),
     ...allProcessTypes.map(pt => {
       const isHidden = isColHidden(pt.id);
@@ -12566,7 +12650,6 @@ function renderBrandsCompareView(root) {
         }
       }, pt.label);
     }),
-    // 모두 보이기 버튼
     el('span', { 
       class: 'col-toggle-reset',
       onclick: () => {
@@ -12574,7 +12657,21 @@ function renderBrandsCompareView(root) {
         renderContent();
       }
     }, '↺ 모두 보기')
-  ]);
+  ];
+  
+  // "기본 정렬" 버튼 — 정렬 변경 시에만 표시
+  if (sortKey) {
+    filterChips.push(el('span', { 
+      class: 'col-toggle-reset',
+      style: { marginLeft: '4px' },
+      onclick: () => {
+        STATE.filters.compareSort = { key: null, dir: 'asc' };
+        renderContent();
+      }
+    }, '↺ 기본 정렬'));
+  }
+  
+  const filterArea = el('div', { class: 'col-toggle-filter' }, filterChips);
   section.appendChild(filterArea);
   
   // ─── visible 컬럼 (divider는 그룹 내 visible이 있을 때만 표시) ───
@@ -12600,18 +12697,38 @@ function renderBrandsCompareView(root) {
   const scrollWrap = el('div', { class: 'brand-process-scroll-wrap' });
   const table = el('table', { class: 'brand-process-table' });
   
-  // ─── thead — 단순 1줄 헤더 (divider는 빈 컬럼) ───
+  // ─── thead — 헤더 클릭 시 정렬 ───
   const thead = el('thead');
-  const allTypes = visibleTypes;  // 이후 코드는 visibleTypes 사용
+  const allTypes = visibleTypes;
   
   const headerRow = el('tr');
-  headerRow.appendChild(el('th', { class: 'col-brand sticky-col' }, '브랜드'));
-  headerRow.appendChild(el('th', { class: 'col-round' }, 'R'));
+  
+  // 브랜드 헤더 (클릭 가능)
+  const brandTh = el('th', { 
+    class: 'col-brand sticky-col sortable-col' + (sortKey === 'brand' ? ' is-sorted' : ''),
+    onclick: () => toggleSort('brand')
+  }, '브랜드' + sortArrow('brand'));
+  headerRow.appendChild(brandTh);
+  
+  // R 헤더 (클릭 가능)
+  const roundTh = el('th', { 
+    class: 'col-round sortable-col' + (sortKey === 'round' ? ' is-sorted' : ''),
+    onclick: () => toggleSort('round')
+  }, 'R' + sortArrow('round'));
+  headerRow.appendChild(roundTh);
+  
+  // process 컬럼들 (클릭 가능, divider는 클릭 X)
   allTypes.forEach(pt => {
     if (pt.isDivider) {
       headerRow.appendChild(el('th', { class: 'col-divider' }, ''));
     } else {
-      headerRow.appendChild(el('th', { class: 'col-process' }, pt.label));
+      const sortK = 'pt:' + pt.id;
+      const isSorted = sortKey === sortK;
+      headerRow.appendChild(el('th', { 
+        class: 'col-process sortable-col' + (isSorted ? ' is-sorted' : ''),
+        onclick: () => toggleSort(sortK),
+        title: '클릭하여 ' + pt.label + ' 상태순 정렬'
+      }, pt.label + sortArrow(sortK)));
     }
   });
   thead.appendChild(headerRow);
