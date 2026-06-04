@@ -5088,6 +5088,23 @@
   }
   .mt-tl-task-inline-btn.primary:hover { opacity: 0.9; }
   
+  /* 🕐 메일보다 늦은 시간 자동 설정 버튼 */
+  .mt-tl-now-btn {
+    font-size: 12px;
+    line-height: 1;
+    padding: 0 5px;
+    height: 24px;
+    border-radius: 4px;
+    border: 0.5px solid var(--border);
+    background: white;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .mt-tl-now-btn:hover { 
+    background: rgba(79, 70, 229, 0.08);
+    border-color: var(--accent, #4f46e5);
+  }
+  
   /* 타임라인 카드 type 칩 (메일/통화/미팅/메모 모두 표시) */
   .mt-tl-type-chip {
     font-size: 9.5px;
@@ -6676,6 +6693,50 @@ function fmtDateMonthDay(v) {
     if (!isNaN(date.getTime())) weekday = WEEKDAY_KO_SHORT[date.getDay()];
   } catch {}
   return mm + '.' + dd + (weekday ? ' (' + weekday + ')' : '');
+}
+
+// 스레드의 모든 log + task에서 가장 늦은 datetime 찾기
+function getThreadLatestDateTime(threadId) {
+  if (!threadId) return null;
+  let latest = null;
+  
+  // logs (메일/통화/미팅/메모)
+  (STATE.data.logs || []).forEach(l => {
+    if (l.thread_id !== threadId || !l.date) return;
+    const dateStr = String(l.date).slice(0, 10);
+    const timeStr = String(l.time || '00:00').slice(0, 5);
+    const dt = new Date(dateStr + 'T' + timeStr + ':00');
+    if (!isNaN(dt.getTime()) && (!latest || dt > latest)) latest = dt;
+  });
+  
+  // tasks (체크박스)
+  (STATE.data.tasks || []).forEach(t => {
+    if (t.thread_id !== threadId || !t.due_date) return;
+    const dateStr = String(t.due_date).slice(0, 10);
+    const timeStr = String(t.due_time || '00:00').slice(0, 5);
+    const dt = new Date(dateStr + 'T' + timeStr + ':00');
+    if (!isNaN(dt.getTime()) && (!latest || dt > latest)) latest = dt;
+  });
+  
+  return latest;
+}
+
+// 스레드에 새 항목 추가 시 "메일보다 늦은 시간" 자동 계산
+// = 마지막 항목 + 1분 vs 현재 시각 — 더 늦은 것
+function getNextSlotDateTime(threadId) {
+  const latest = getThreadLatestDateTime(threadId);
+  const now = new Date();
+  let next;
+  if (!latest) {
+    next = now;
+  } else {
+    const plusOneMin = new Date(latest.getTime() + 60 * 1000);
+    next = plusOneMin > now ? plusOneMin : now;
+  }
+  const pad = n => String(n).padStart(2, '0');
+  const date = next.getFullYear() + '-' + pad(next.getMonth() + 1) + '-' + pad(next.getDate());
+  const time = pad(next.getHours()) + ':' + pad(next.getMinutes());
+  return { date, time };
 }
 
 // 짧은 한국어 날짜 형식: "26.05.05 (화)"
@@ -9268,6 +9329,23 @@ function openMailThreadDetail(t) {
           class: 'mt-tl-task-inline-datelabel'
         }, currentDate ? fmtDateMonthDay(currentDate) : '날짜 없음');
         const timeEl = makeTimeInput({ value: insertTime, style: { maxWidth: '80px', fontSize: '11px' } });
+        
+        // 🕐 메일보다 늦은 시간 자동 설정 버튼
+        const nowBtn = el('button', {
+          class: 'mt-tl-now-btn',
+          type: 'button',
+          title: '메일보다 늦은 시간 자동 설정 (마지막 항목 + 1분)'
+        }, '🕐');
+        nowBtn.onclick = (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const next = getNextSlotDateTime(threadId);
+          currentDate = next.date;
+          dateLabel.textContent = fmtDateMonthDay(next.date);
+          dateLabel.classList.remove('empty');
+          timeEl.value = next.time;
+        };
+        
         const titleInput = el('input', { 
           type: 'text', 
           class: 'mt-tl-task-inline-input',
@@ -9327,7 +9405,10 @@ function openMailThreadDetail(t) {
         };
         
         const inline = el('div', { class: 'mt-tl-task-inline' }, [
-          el('div', { class: 'mt-tl-task-inline-time', style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, [dateLabel, timeEl]),
+          el('div', { class: 'mt-tl-task-inline-time', style: { display: 'flex', flexDirection: 'column', gap: '3px' } }, [
+            dateLabel, 
+            el('div', { style: { display: 'flex', gap: '3px', alignItems: 'center' } }, [timeEl, nowBtn])
+          ]),
           el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 } }, [
             el('input', { type: 'checkbox', class: 'mt-tl-task-cb', disabled: 'disabled' }),
             titleInput
