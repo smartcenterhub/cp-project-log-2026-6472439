@@ -2837,8 +2837,11 @@
     border-collapse: separate;
     border-spacing: 0;
     font-size: 12px;
-    /* 최소 폭: 브랜드(180) + 라운드(48) + 9*160 */
-    min-width: calc(180px + 48px + 9 * 160px);
+    /* 컬럼 합계만큼만 — 부모가 넓어도 안 늘어남 (반응형 X) */
+    width: max-content;
+    max-width: none;
+    /* 컬럼 너비 절대 고정 — 내용이 길어도 width 무시 X */
+    table-layout: fixed;
   }
   .brand-process-table th {
     background: rgba(0, 0, 0, 0.025);
@@ -2856,6 +2859,8 @@
     padding: 8px 10px;
     border-bottom: 1px solid var(--border);
     vertical-align: top;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
   }
   .brand-process-table tr:last-child td { border-bottom: none; }
   .brand-process-table tr.brand-row:hover td {
@@ -2864,6 +2869,65 @@
   .brand-process-table .col-brand { width: 180px; min-width: 180px; }
   .brand-process-table .col-round { width: 48px; min-width: 48px; text-align: center; }
   /* ━━━━━━ 단계별 비교 표 — 열 숨기기 필터 ━━━━━━ */
+  /* ━━━━━━ 단계별 비교 표 — 가로 스크롤 드래그 바 ━━━━━━ */
+  .bp-drag-bar {
+    position: relative;
+    height: 24px;
+    margin: 0 0 10px;
+    width: 100%;
+    background: rgba(79, 70, 229, 0.04);
+    border: 1px solid rgba(79, 70, 229, 0.2);
+    border-radius: 12px;
+    cursor: grab;
+    user-select: none;
+    color: var(--text-faint, #9898a8);
+    font-size: 10.5px;
+    font-weight: 500;
+    transition: background 0.12s, border-color 0.12s;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+  .bp-drag-bar:hover {
+    background: rgba(79, 70, 229, 0.07);
+    border-color: rgba(79, 70, 229, 0.35);
+  }
+  .bp-drag-bar:active,
+  .bp-drag-bar.dragging { cursor: grabbing; }
+  .bp-drag-bar-hint-l {
+    position: absolute;
+    left: 10px; top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .bp-drag-bar-hint-r {
+    position: absolute;
+    right: 10px; top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.6;
+    letter-spacing: 0.3px;
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .bp-drag-knob {
+    position: absolute;
+    top: 50%; left: 0;
+    width: 14px; height: 14px;
+    margin-top: -7px; margin-left: -7px;
+    background: var(--accent, #4f46e5);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.45);
+    transition: opacity 0.2s ease;
+  }
+  .bp-drag-bar.dragging .bp-drag-knob {
+    opacity: 1;
+    transition: opacity 0.08s ease;
+  }
+  
   .col-toggle-filter {
     display: flex;
     align-items: center;
@@ -12755,6 +12819,18 @@ function renderBrandsCompareView(root) {
   const filterArea = el('div', { class: 'col-toggle-filter' }, filterChips);
   section.appendChild(filterArea);
   
+  // ─── 드래그 바 (가로 스크롤) ───
+  const dragKnob = el('span', { class: 'bp-drag-knob' });
+  const dragBar = el('div', { 
+    class: 'bp-drag-bar', 
+    title: '좌우로 끌어서 표 가로 스크롤'
+  }, [
+    el('span', { class: 'bp-drag-bar-hint-l' }, '◀ 왼쪽'),
+    dragKnob,
+    el('span', { class: 'bp-drag-bar-hint-r' }, '오른쪽 ▶')
+  ]);
+  section.appendChild(dragBar);
+  
   // ─── visible 컬럼 (divider는 그룹 내 visible이 있을 때만 표시) ───
   const visibleTypes = [];
   let pendingDivider = null;
@@ -12895,6 +12971,47 @@ function renderBrandsCompareView(root) {
   table.appendChild(tbody);
   scrollWrap.appendChild(table);
   section.appendChild(scrollWrap);
+  
+  // ─── 드래그 바 동작 연결 ───
+  // (scrollWrap이 만들어진 후에 연결)
+  const dragState = { startX: null, startScroll: 0 };
+  
+  const setKnobAt = (clientX) => {
+    const rect = dragBar.getBoundingClientRect();
+    const x = Math.max(0, Math.min(rect.width, clientX - rect.left));
+    dragKnob.style.left = x + 'px';
+  };
+  
+  dragBar.addEventListener('mousedown', (e) => {
+    dragState.startX = e.clientX;
+    dragState.startScroll = scrollWrap.scrollLeft;
+    setKnobAt(e.clientX);
+    dragBar.classList.add('dragging');
+    document.body.style.cursor = 'grabbing';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+  
+  const onMouseMove = (e) => {
+    if (dragState.startX === null) return;
+    setKnobAt(e.clientX);
+    const dx = e.clientX - dragState.startX;
+    // 오른쪽 드래그 → scrollLeft 증가 → 오른쪽 컬럼 봄
+    scrollWrap.scrollLeft = dragState.startScroll + dx;
+  };
+  
+  const endDrag = () => {
+    if (dragState.startX === null) return;
+    dragState.startX = null;
+    dragState.startScroll = 0;
+    dragBar.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  };
+  
+  window.addEventListener('mousemove', onMouseMove);
+  window.addEventListener('mouseup', endDrag);
+  window.addEventListener('mouseleave', endDrag);
   
   root.appendChild(section);
 }
