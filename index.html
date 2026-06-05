@@ -5813,6 +5813,28 @@ function isColHidden(id) {
   return getHiddenCols().indexOf(id) >= 0;
 }
 
+// ━━━━━━ 단계별 비교 표 — 브랜드 숨기기 (localStorage 저장) ━━━━━━
+const HIDDEN_BRANDS_KEY = 'bp-compare-hidden-brands';
+function getHiddenBrands() {
+  try {
+    const v = localStorage.getItem(HIDDEN_BRANDS_KEY);
+    return v ? JSON.parse(v) : [];
+  } catch { return []; }
+}
+function setHiddenBrands(arr) {
+  try { localStorage.setItem(HIDDEN_BRANDS_KEY, JSON.stringify(arr)); } catch {}
+}
+function toggleHiddenBrand(id) {
+  const hidden = getHiddenBrands();
+  const i = hidden.indexOf(id);
+  if (i >= 0) hidden.splice(i, 1);
+  else hidden.push(id);
+  setHiddenBrands(hidden);
+}
+function isBrandHidden(id) {
+  return getHiddenBrands().indexOf(id) >= 0;
+}
+
 // ━━━━━━ 단계별 비교 표 — 정렬 ━━━━━━
 // 상태 우선순위 (작을수록 위)
 const COMPARE_STATUS_ORDER = { '완료': 1, '진행중': 2, '대기': 3, '이슈': 4 };
@@ -12819,6 +12841,31 @@ function renderBrandsCompareView(root) {
   const filterArea = el('div', { class: 'col-toggle-filter' }, filterChips);
   section.appendChild(filterArea);
   
+  // ─── 브랜드 표시 필터 ───
+  // 칩은 항상 기본 순(round → brand_id), 표 행은 정렬에 따름
+  const defaultSortedBrands = sortBrandsForCompare(STATE.data.brands || [], null, 'asc');
+  const brandFilterArea = el('div', { class: 'col-toggle-filter brand-filter-area' }, [
+    el('span', { class: 'col-toggle-label' }, '🏷️ 브랜드 표시'),
+    ...defaultSortedBrands.map(b => {
+      const isHidden = isBrandHidden(b.brand_id);
+      return el('span', { 
+        class: 'col-toggle-chip' + (isHidden ? ' is-hidden' : ''),
+        onclick: () => {
+          toggleHiddenBrand(b.brand_id);
+          renderContent();
+        }
+      }, b.brand_name || b.brand_id);
+    }),
+    el('span', { 
+      class: 'col-toggle-reset',
+      onclick: () => {
+        setHiddenBrands([]);
+        renderContent();
+      }
+    }, '↺ 모두 보기')
+  ]);
+  section.appendChild(brandFilterArea);
+  
   // ─── 드래그 바 (가로 스크롤) ───
   const dragKnob = el('span', { class: 'bp-drag-knob' });
   const dragBar = el('div', { 
@@ -12894,6 +12941,7 @@ function renderBrandsCompareView(root) {
   // ─── tbody ───
   const tbody = el('tbody');
   brands.forEach(b => {
+    if (isBrandHidden(b.brand_id)) return;  // 숨김 브랜드는 행 안 그림
     const isRisk = b.risk_flag === 'TRUE' || b.risk_flag === true;
     const row = el('tr', { class: 'brand-row' });
     
