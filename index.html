@@ -5729,6 +5729,32 @@ const STATE = {
   filters: {},
 };
 
+// ━━━━━━ 새로고침 시 마지막 페이지 + 탭 복원 ━━━━━━
+const LAST_VIEW_KEY = 'app-last-view';
+function saveLastView() {
+  try {
+    localStorage.setItem(LAST_VIEW_KEY, JSON.stringify({
+      page: STATE.page,
+      brands_view: STATE.filters.brands_view || null
+    }));
+  } catch {}
+}
+function loadLastView() {
+  try {
+    const v = localStorage.getItem(LAST_VIEW_KEY);
+    return v ? JSON.parse(v) : null;
+  } catch { return null; }
+}
+
+// 페이지 로드 시 마지막 view 복원
+(function() {
+  const last = loadLastView();
+  if (last && last.page) {
+    STATE.page = last.page;
+    if (last.brands_view) STATE.filters.brands_view = last.brands_view;
+  }
+})();
+
 // 라운드 색상 매핑
 const ROUND_COLOR = ['', 'r1','r2','r3','r4','r5','r6','r7'];
 
@@ -7781,6 +7807,7 @@ function renderSidebarFooter() {
 function navigate(pageId) {
   STATE.page = pageId;
   STATE.filters = {};
+  saveLastView();  // localStorage 저장
   renderNav();
   renderTopbar();
   renderContent();
@@ -12751,6 +12778,7 @@ function renderBrands(root) {
       class: 'brands-view-btn' + (viewMode === 'detail' ? ' active' : ''),
       onclick: () => { 
         STATE.filters.brands_view = 'detail'; 
+        saveLastView();
         renderContent(); 
       }
     }, '📋 브랜드별'),
@@ -12758,6 +12786,7 @@ function renderBrands(root) {
       class: 'brands-view-btn' + (viewMode === 'compare' ? ' active' : ''),
       onclick: () => { 
         STATE.filters.brands_view = 'compare'; 
+        saveLastView();
         renderContent(); 
       }
     }, '⊞ 단계별 비교')
@@ -13401,11 +13430,24 @@ function openProcessPopover({ title, body, footer, anchorEl, width, onClose }) {
   };
   document.addEventListener('keydown', onKeyDown);
   
+  // 외부 클릭 닫기 (popover 내부 + 담당자 picker 같은 자식 popover는 제외)
+  const onDocClick = (e) => {
+    if (popover.contains(e.target)) return;  // popover 내부 클릭
+    // 다른 떠 있는 picker/popup 클릭은 무시 (stakeholder picker 등)
+    if (e.target.closest('.stk-picker, .stk-popover, .cal-pop, .stk-pick-popover')) return;
+    closeProcessPopover();
+  };
+  // setTimeout(0): 이 popover를 연 클릭 이벤트가 document까지 도달하기 전에 리스너 추가되지 않게
+  setTimeout(() => {
+    document.addEventListener('click', onDocClick);
+  }, 0);
+  
   // cleanup
   popover._cleanup = () => {
     document.removeEventListener('scroll', onScrollOrResize, true);
     window.removeEventListener('resize', onScrollOrResize);
     document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('click', onDocClick);
     if (onClose) onClose();
   };
   
