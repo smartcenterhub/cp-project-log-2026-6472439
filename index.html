@@ -2983,6 +2983,157 @@
   }
   
   .brand-process-table .col-process { width: 160px; min-width: 160px; }
+  /* 모델(셰프) 컬럼 */
+  .brand-process-table .col-model { 
+    width: 140px; min-width: 140px;
+    font-size: 12px;
+  }
+  .col-model-alias { font-weight: 600; color: var(--text); }
+  .col-model-name { font-size: 10.5px; color: var(--text-faint); margin-top: 2px; }
+  
+  /* ━━━━━━ 라운드 관리 페이지 ━━━━━━ */
+  .rounds-page-header {
+    margin-bottom: 16px;
+  }
+  .rounds-page-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px;
+  }
+  .rounds-page-sub {
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .rounds-mc-filter {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    background: rgba(124, 58, 237, 0.04);
+    border: 0.5px solid rgba(124, 58, 237, 0.18);
+    border-radius: 8px;
+  }
+  .rounds-mc-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #7c3aed;
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+    text-transform: uppercase;
+  }
+  .rounds-mc-chip {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 11px;
+    background: white;
+    color: var(--text-muted);
+    cursor: pointer;
+    border: 1px solid var(--border);
+    font-weight: 500;
+    user-select: none;
+    transition: all 0.1s;
+  }
+  .rounds-mc-chip:hover { background: rgba(124, 58, 237, 0.06); border-color: rgba(124, 58, 237, 0.35); }
+  .rounds-mc-chip.is-active {
+    background: rgba(124, 58, 237, 0.10);
+    color: #7c3aed;
+    border-color: rgba(124, 58, 237, 0.45);
+    font-weight: 600;
+  }
+  .rounds-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .round-card {
+    background: white;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+    transition: box-shadow 0.15s;
+  }
+  .round-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+  }
+  .round-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .round-card-id { font-size: 13px; padding: 3px 10px; }
+  .round-card-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .round-card-mc {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    background: rgba(124, 58, 237, 0.06);
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .round-card-mc-label { font-size: 13px; }
+  .round-card-mc-names { color: #7c3aed; font-weight: 600; }
+  .round-card-brands {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .round-card-brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    background: rgba(0, 0, 0, 0.025);
+    border-radius: 5px;
+    font-size: 11.5px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .round-card-brand:hover { background: rgba(79, 70, 229, 0.08); }
+  .round-card-brand-id {
+    font-size: 9.5px;
+    font-weight: 600;
+    color: var(--text-faint);
+    padding: 1px 5px;
+    background: white;
+    border: 0.5px solid var(--border);
+    border-radius: 3px;
+  }
+  .round-card-brand-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+  .round-card-brand-chef {
+    color: var(--text-faint);
+    font-size: 10.5px;
+    margin-left: auto;
+  }
+  .round-card-empty {
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 5px;
+    text-align: center;
+  }
+  .round-card-memo {
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
   /* 정렬 가능한 헤더 */
   .brand-process-table th.sortable-col {
     cursor: pointer;
@@ -5721,7 +5872,7 @@ const STATE = {
   page: 'mail_threads',
   data: {
     brands: [], stakeholders: [], logs: [], tasks: [], documents: [], milestones: [],
-    brand_processes: [], process_types: []
+    brand_processes: [], process_types: [], rounds: []
   },
   loaded: false,
   loading: false,
@@ -5889,6 +6040,8 @@ function sortBrandsForCompare(brands, sortKey, sortDir) {
   
   if (sortKey === 'brand') {
     sorted.sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
+  } else if (sortKey === 'model') {
+    sorted.sort((a, b) => (a.chef_alias || a.chef_real_name || '').localeCompare(b.chef_alias || b.chef_real_name || ''));
   } else if (sortKey === 'round') {
     sorted.sort((a, b) => {
       const ra = parseInt(a.round || '999', 10);
@@ -5926,6 +6079,7 @@ const PROCESS_STATUSES = [
 const PAGES = [
   { id: 'dashboard',    label: '대시보드',    icon: '◧' },
   { id: 'brands',       label: '브랜드',      icon: '🎯' },
+  { id: 'rounds',       label: '라운드',      icon: '🎤' },
   { id: 'logs',         label: '커뮤니케이션', icon: '◉' },
   { id: 'mail_threads', label: '메일스레드',   icon: '✉' },
   { id: 'stakeholders', label: '연락처',      icon: '◎' },
@@ -7826,6 +7980,7 @@ function renderTopbar() {
   const titles = {
     dashboard: { main: 'Dashboard', em: '대시보드' },
     logs: { main: 'Communications', em: '커뮤니케이션' },
+    rounds: { main: 'Rounds', em: '라운드' },
     stakeholders: { main: 'Contacts', em: '연락처' },
     tasks: { main: 'Tasks', em: '할 일' },
     documents: { main: 'Documents', em: '문서' },
@@ -7978,6 +8133,7 @@ function renderContent() {
   switch (STATE.page) {
     case 'dashboard': renderDashboard(content); break;
     case 'brands': renderBrands(content); break;
+    case 'rounds': renderRounds(content); break;
     case 'logs': renderLogs(content); break;
     case 'stakeholders': renderStakeholders(content); break;
     case 'tasks': renderTasks(content); break;
@@ -12759,6 +12915,149 @@ function milestoneItem(m) {
 // ═══════════════════════════════════════════════════════════════
 //  Brands 페이지 — 두 뷰 (브랜드별 / 단계별 비교) 토글
 // ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// 라운드 관리 페이지
+// ═══════════════════════════════════════════════════════════════
+function renderRounds(root) {
+  const rounds = (STATE.data.rounds || []).slice().sort((a, b) => {
+    const na = parseInt(String(a.round_id || 'R99').replace('R', ''), 10);
+    const nb = parseInt(String(b.round_id || 'R99').replace('R', ''), 10);
+    return na - nb;
+  });
+  
+  // 모든 MC 모음 (stakeholders에서 role='mc' 또는 rounds.mc_ids로)
+  const allMcs = new Set();
+  rounds.forEach(r => {
+    (String(r.mc_ids || '').split(','))
+      .map(s => s.trim()).filter(Boolean)
+      .forEach(id => allMcs.add(id));
+  });
+  // mc_names에만 있고 mc_ids 없는 경우도 처리
+  const mcStakeholders = (STATE.data.stakeholders || [])
+    .filter(s => String(s.role || '').toLowerCase() === 'mc');
+  mcStakeholders.forEach(s => allMcs.add(s.stakeholder_id));
+  
+  const mcList = Array.from(allMcs).map(id => {
+    const stk = (STATE.data.stakeholders || []).find(s => s.stakeholder_id === id);
+    return { id, name: stk ? (stk.name_ko || stk.name_en || id) : id };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+  
+  // 선택 MC 필터
+  STATE.filters.rounds_mc = STATE.filters.rounds_mc || '';
+  const selectedMc = STATE.filters.rounds_mc;
+  
+  const wrap = el('div', { class: 'rounds-page' });
+  
+  // 헤더
+  wrap.appendChild(el('div', { class: 'rounds-page-header' }, [
+    el('h2', {}, '라운드 관리'),
+    el('div', { class: 'rounds-page-sub' }, '라꼰즈 유튜브 출연 MC + 라운드별 브랜드')
+  ]));
+  
+  // MC 필터 영역
+  if (mcList.length > 0) {
+    const mcFilter = el('div', { class: 'rounds-mc-filter' }, [
+      el('span', { class: 'rounds-mc-label' }, '🎤 MC별 필터'),
+      el('span', { 
+        class: 'rounds-mc-chip' + (selectedMc === '' ? ' is-active' : ''),
+        onclick: () => { STATE.filters.rounds_mc = ''; renderContent(); }
+      }, '전체'),
+      ...mcList.map(mc => el('span', { 
+        class: 'rounds-mc-chip' + (selectedMc === mc.id ? ' is-active' : ''),
+        onclick: () => { STATE.filters.rounds_mc = mc.id; renderContent(); }
+      }, mc.name))
+    ]);
+    wrap.appendChild(mcFilter);
+  }
+  
+  // 라운드 카드 그리드
+  const grid = el('div', { class: 'rounds-grid' });
+  
+  rounds.forEach(r => {
+    // MC 필터 적용
+    if (selectedMc) {
+      const mcIds = String(r.mc_ids || '').split(',').map(s => s.trim()).filter(Boolean);
+      if (mcIds.indexOf(selectedMc) < 0) return;
+    }
+    
+    // 라운드 번호
+    const rNum = parseInt(String(r.round_id || 'R0').replace('R', ''), 10);
+    const rCls = (rNum >= 1 && rNum <= 7) ? 'r' + rNum : 'gray';
+    
+    // 이 라운드의 브랜드들
+    const roundBrands = (STATE.data.brands || []).filter(b => 
+      String(b.round) === String(rNum)
+    ).sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
+    
+    // MC 이름들
+    const mcNames = r.mc_names || (
+      String(r.mc_ids || '').split(',')
+        .map(s => s.trim()).filter(Boolean)
+        .map(id => {
+          const stk = (STATE.data.stakeholders || []).find(s => s.stakeholder_id === id);
+          return stk ? (stk.name_ko || stk.name_en || id) : id;
+        }).join(', ')
+    );
+    
+    const card = el('div', { class: 'round-card round-card-' + rCls });
+    
+    // 헤더
+    card.appendChild(el('div', { class: 'round-card-header' }, [
+      el('span', { class: 'round-card-id round-chip round-' + rCls }, r.round_id || 'R?'),
+      el('span', { class: 'round-card-date' }, r.launch_date ? fmtDateShort(r.launch_date) : '날짜 미정')
+    ]));
+    
+    // MC
+    card.appendChild(el('div', { class: 'round-card-mc' }, [
+      el('span', { class: 'round-card-mc-label' }, '🎤'),
+      el('span', { class: 'round-card-mc-names' }, mcNames || '미정')
+    ]));
+    
+    // 브랜드 목록
+    const brandsBox = el('div', { class: 'round-card-brands' });
+    if (roundBrands.length > 0) {
+      roundBrands.forEach(b => {
+        brandsBox.appendChild(el('div', { 
+          class: 'round-card-brand',
+          onclick: () => {
+            STATE.filters.selected_brand = b.brand_id;
+            STATE.filters.brands_view = 'detail';
+            STATE.page = 'brands';
+            saveLastView();
+            renderNav();
+            renderTopbar();
+            renderContent();
+          },
+          title: '클릭하여 브랜드 상세 보기'
+        }, [
+          el('span', { class: 'round-card-brand-id' }, b.brand_id || ''),
+          el('span', { class: 'round-card-brand-name' }, b.brand_name || ''),
+          b.chef_alias ? el('span', { class: 'round-card-brand-chef' }, '· ' + b.chef_alias) : null
+        ].filter(Boolean)));
+      });
+    } else {
+      brandsBox.appendChild(el('div', { class: 'round-card-empty' }, '브랜드 없음'));
+    }
+    card.appendChild(brandsBox);
+    
+    // 메모
+    if (r.memo) {
+      card.appendChild(el('div', { class: 'round-card-memo' }, r.memo));
+    }
+    
+    grid.appendChild(card);
+  });
+  
+  if (grid.children.length === 0) {
+    grid.appendChild(el('div', { 
+      style: { padding: '40px', color: 'var(--text-faint)', textAlign: 'center', gridColumn: '1 / -1' } 
+    }, selectedMc ? '선택한 MC가 출연한 라운드 없음' : '라운드 데이터 없음 (rounds 시트 확인)'));
+  }
+  
+  wrap.appendChild(grid);
+  root.appendChild(wrap);
+}
+
 function renderBrands(root) {
   const brands = STATE.data.brands || [];
   if (brands.length === 0) {
@@ -12836,6 +13135,17 @@ function renderBrandsCompareView(root) {
   
   const filterChips = [
     el('span', { class: 'col-toggle-label' }, '🎯 열 표시'),
+    // 모델(셰프) 칩
+    (() => {
+      const isHidden = isColHidden('__model__');
+      return el('span', { 
+        class: 'col-toggle-chip' + (isHidden ? ' is-hidden' : ''),
+        onclick: () => {
+          toggleHiddenCol('__model__');
+          renderContent();
+        }
+      }, '모델');
+    })(),
     ...allProcessTypes.map(pt => {
       const isHidden = isColHidden(pt.id);
       return el('span', { 
@@ -12950,6 +13260,15 @@ function renderBrandsCompareView(root) {
   }, 'R' + sortArrow('round'));
   headerRow.appendChild(roundTh);
   
+  // 모델(셰프) 헤더 — 컬럼 숨기기 토글 대상
+  const showModelCol = !isColHidden('__model__');
+  if (showModelCol) {
+    headerRow.appendChild(el('th', { 
+      class: 'col-model sortable-col' + (sortKey === 'model' ? ' is-sorted' : ''),
+      onclick: () => toggleSort('model')
+    }, '모델' + sortArrow('model')));
+  }
+  
   // process 컬럼들 (클릭 가능, divider는 클릭 X)
   allTypes.forEach(pt => {
     if (pt.isDivider) {
@@ -13000,6 +13319,17 @@ function renderBrandsCompareView(root) {
         ? el('span', { class: 'round-chip round-' + rCls }, 'R' + b.round)
         : el('span', { class: 'round-chip round-gray' }, '?')
     ));
+    
+    // 모델(셰프) 셀 — 활동명 + 본명
+    if (showModelCol) {
+      const chefAlias = b.chef_alias || '';
+      const chefName = b.chef_real_name || '';
+      row.appendChild(el('td', { class: 'col-model' }, [
+        chefAlias ? el('div', { class: 'col-model-alias' }, chefAlias) : null,
+        chefName && chefName !== chefAlias ? el('div', { class: 'col-model-name' }, chefName) : null,
+        !chefAlias && !chefName ? el('span', { style: { color: 'var(--text-faint)' } }, '—') : null
+      ].filter(Boolean)));
+    }
     
     // 3~N열: 프로세스 셀들 + divider 빈 컬럼
     allTypes.forEach(pt => {
@@ -14085,6 +14415,17 @@ function renderBrandsDetailView(root) {
       el('span', { class: 'brand-meta-label' }, '라운드'),
       roundEl
     ]));
+    
+    // 라꼰즈 MC (rounds 시트에서 mc_names 가져옴, read-only)
+    if (b.round) {
+      const roundId = 'R' + b.round;
+      const roundData = (STATE.data.rounds || []).find(r => r.round_id === roundId);
+      const mcText = (roundData && roundData.mc_names) ? roundData.mc_names : '미정';
+      metaContainer.appendChild(el('div', { class: 'brand-meta-row' }, [
+        el('span', { class: 'brand-meta-label' }, '라꼰즈 MC'),
+        el('span', { class: 'brand-meta-val', style: { color: 'var(--text)' } }, mcText)
+      ]));
+    }
     
     // 런칭일
     const launchEl = el('span', { class: 'brand-meta-val' }, b.launch_date ? fmtDateShort(b.launch_date) : '미정');
