@@ -3151,6 +3151,313 @@
     font-style: italic;
   }
   
+  /* ━━━━━━ Timeline Task Popover (캘린더 + 타임라인 공용) ━━━━━━ */
+  .tt-popover {
+    position: fixed;
+    width: 640px;
+    max-width: calc(100vw - 20px);
+    background: white;
+    border: 0.5px solid var(--border-strong, #d1d5db);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+    padding: 14px 16px;
+    font-size: 12px;
+    z-index: 9990;
+    --tt-arrow-left: 30px;
+  }
+  /* 말꼬리 (위로 향함, 셀 아래에 popover 있을 때) */
+  .tt-popover.arrow-top::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: var(--tt-arrow-left);
+    width: 14px; height: 14px;
+    background: white;
+    transform: rotate(45deg);
+    border-left: 0.5px solid var(--border-strong, #d1d5db);
+    border-top: 0.5px solid var(--border-strong, #d1d5db);
+  }
+  .tt-popover.arrow-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: var(--tt-arrow-left);
+    width: 14px; height: 14px;
+    background: white;
+    transform: rotate(45deg);
+    border-right: 0.5px solid var(--border-strong, #d1d5db);
+    border-bottom: 0.5px solid var(--border-strong, #d1d5db);
+  }
+  
+  .tt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .tt-title-group { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+  .tt-title-input {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    border: none;
+    background: transparent;
+    outline: none;
+    padding: 4px 0;
+    flex: 1;
+    min-width: 0;
+  }
+  .tt-title-input:focus { background: rgba(0,0,0,0.025); padding: 4px 6px; border-radius: 4px; }
+  .tt-cat-chip {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+    border: 0.5px solid transparent;
+  }
+  .tt-close {
+    font-size: 18px;
+    color: var(--text-faint);
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    flex-shrink: 0;
+  }
+  .tt-close:hover { background: rgba(0,0,0,0.05); color: var(--text); }
+  
+  /* 가로 분할 */
+  .tt-split {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 14px;
+  }
+  .tt-split-right {
+    border-left: 0.5px solid var(--border);
+    padding-left: 14px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  @media (max-width: 700px) {
+    .tt-popover { width: calc(100vw - 20px); }
+    .tt-split { grid-template-columns: 1fr; gap: 12px; }
+    .tt-split-right { border-left: none; border-top: 0.5px solid var(--border); padding-left: 0; padding-top: 12px; }
+  }
+  
+  .tt-section-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 8px 0 5px;
+    display: block;
+  }
+  
+  .tt-status-row { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tt-status-chip {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.12s;
+  }
+  .tt-status-chip:hover { background: rgba(0,0,0,0.03); }
+  .tt-status-chip.s-planned.active { background: rgba(156, 163, 175, 0.18); color: #4b5563; border-color: #9ca3af; }
+  .tt-status-chip.s-progress.active { background: rgba(29, 78, 216, 0.15); color: #1d4ed8; border-color: #1d4ed8; }
+  .tt-status-chip.s-done.active { background: rgba(21, 128, 61, 0.18); color: #15803d; border-color: #15803d; }
+  .tt-status-chip.s-delayed.active { background: rgba(220, 38, 38, 0.18); color: #dc2626; border-color: #dc2626; }
+  
+  .tt-input {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    background: white;
+    font-family: inherit;
+    outline: none;
+    color: var(--text);
+  }
+  .tt-input:focus { border-color: var(--accent); }
+  textarea.tt-input { resize: vertical; min-height: 60px; }
+  
+  .tt-progress-row { display: flex; align-items: center; gap: 10px; }
+  .tt-progress-slider { flex: 1; }
+  .tt-progress-val {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 36px;
+    text-align: right;
+    font-family: ui-monospace, monospace;
+  }
+  
+  .tt-detail-toggle {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11.5px; color: var(--text-faint);
+    cursor: pointer; user-select: none;
+    padding: 5px 0; margin-top: 6px;
+    font-weight: 600;
+  }
+  .tt-detail-toggle:hover { color: var(--text-muted); }
+  .tt-detail-toggle-arrow {
+    display: inline-block;
+    transition: transform 0.15s;
+    font-size: 10px;
+  }
+  .tt-detail-toggle.open .tt-detail-toggle-arrow { transform: rotate(90deg); }
+  .tt-detail-content { display: none; }
+  
+  .tt-row-grid {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr;
+    gap: 6px;
+    align-items: end;
+  }
+  
+  /* 담당자 버튼 — 빈: 38x38 정사각형 아이콘 / 선택 후: 이름만 3자 기준 너비 */
+  .tt-owner-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+    font-size: 16px;
+    color: var(--text-faint);
+    transition: all 0.12s;
+    box-sizing: border-box;
+  }
+  .tt-owner-btn:hover { background: rgba(0,0,0,0.02); }
+  .tt-owner-btn.has-owner {
+    width: auto;
+    min-width: 60px;     /* 3글자 기준 */
+    height: 38px;
+    padding: 0 12px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    background: rgba(79, 70, 229, 0.06);
+    border-color: rgba(79, 70, 229, 0.35);
+  }
+  .tt-owner-btn.has-owner:hover { background: rgba(79, 70, 229, 0.12); }
+  
+  /* 브랜드 리스트 (우측 사이드바) */
+  .tt-brand-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 290px;
+    overflow-y: auto;
+    border: 0.5px solid var(--border);
+    border-radius: 6px;
+    padding: 4px;
+    background: rgba(0,0,0,0.015);
+  }
+  .tt-brand-list::-webkit-scrollbar { width: 6px; }
+  .tt-brand-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+  
+  .tt-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.08s;
+  }
+  .tt-brand-row:hover { background: rgba(0,0,0,0.04); }
+  .tt-brand-row.checked { background: rgba(21, 128, 61, 0.08); color: #15803d; }
+  .tt-brand-row.checked:hover { background: rgba(21, 128, 61, 0.14); }
+  
+  .tt-brand-row-cb {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1px solid var(--border-strong, #d1d5db);
+    background: white;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .tt-brand-row.checked .tt-brand-row-cb { background: #15803d; border-color: #15803d; }
+  .tt-brand-row.checked .tt-brand-row-cb::after {
+    content: '✓';
+    position: absolute;
+    top: -2px; left: 2px;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .tt-brand-row-id {
+    font-size: 9.5px;
+    font-family: ui-monospace, monospace;
+    color: var(--text-faint);
+    background: white;
+    padding: 1px 4px;
+    border: 0.5px solid var(--border);
+    border-radius: 3px;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .tt-brand-row.checked .tt-brand-row-id {
+    color: #15803d;
+    border-color: rgba(21, 128, 61, 0.3);
+  }
+  .tt-brand-row-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* 푸터 */
+  .tt-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 0.5px solid var(--border);
+  }
+  .tt-delete {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--err);
+    cursor: pointer; padding: 4px 8px;
+    border-radius: 4px; background: transparent; border: none;
+  }
+  .tt-delete:hover { background: rgba(220, 38, 38, 0.08); }
+  .tt-actions { display: flex; gap: 6px; }
+  .tt-btn {
+    font-size: 11.5px;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 0.5px solid var(--border-strong, #d1d5db);
+    background: white;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .tt-btn:hover { background: rgba(0,0,0,0.03); }
+  .tt-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .tt-btn.primary:hover { filter: brightness(1.08); }
+  
   /* ━━━━━━ 캘린더 페이지 (월별 그리드) ━━━━━━ */
   .cal-page-header {
     display: flex;
@@ -6074,7 +6381,16 @@ function loadLastView() {
 (function() {
   const last = loadLastView();
   if (last && last.page) {
-    STATE.page = last.page;
+    // 사라진 메뉴 자동 fallback
+    const validPages = ['brands_detail', 'brands_compare', 'mail_threads', 'timeline', 'settings'];
+    if (last.page === 'brands') {
+      // 옛 'brands' page → brands_view에 따라 새 페이지로 매핑
+      STATE.page = (last.brands_view === 'compare') ? 'brands_compare' : 'brands_detail';
+    } else if (validPages.indexOf(last.page) >= 0) {
+      STATE.page = last.page;
+    } else {
+      STATE.page = 'brands_detail';  // 사라진 메뉴 → 기본
+    }
     if (last.brands_view) STATE.filters.brands_view = last.brands_view;
   }
 })();
@@ -6250,19 +6566,11 @@ const PROCESS_STATUSES = [
 
 // 페이지 정의
 const PAGES = [
-  { id: 'dashboard',    label: '대시보드',    icon: '◧' },
-  { id: 'brands',       label: '브랜드',      icon: '🎯' },
-  { id: 'rounds',       label: '라운드',      icon: '🎤' },
-  { id: 'logs',         label: '커뮤니케이션', icon: '◉' },
-  { id: 'mail_threads', label: '메일스레드',   icon: '✉' },
-  { id: 'stakeholders', label: '연락처',      icon: '◎' },
-  { id: 'tasks',        label: '할 일',       icon: '◐' },
-  { id: 'documents',    label: '문서',        icon: '◇' },
-  { id: 'milestones',   label: '마일스톤',    icon: '◈' },
-  { id: 'timeline',     label: '타임라인',    icon: '▦' },
-  { id: 'calendar',     label: '달력',        icon: '📅' },
-  { id: 'guide',        label: '사용 가이드',  icon: '✦' },
-  { id: 'settings',     label: '설정',        icon: '⚙' },
+  { id: 'brands_detail',  label: '브랜드별',    icon: '🎯' },
+  { id: 'brands_compare', label: '단계별 비교', icon: '📊' },
+  { id: 'mail_threads',   label: '메일스레드',   icon: '✉' },
+  { id: 'timeline',       label: '타임라인',    icon: '▦' },
+  { id: 'settings',       label: '설정',        icon: '⚙' },
 ];
 
 // ═══════════════════════════════════════════════════════════════
@@ -6487,7 +6795,7 @@ function calFmtDisplay(ds) {
   const m = String(ds).match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (!m) return String(ds);
   const wd = new Date(+m[1], +m[2] - 1, +m[3]).getDay();
-  return `${m[1].slice(2)}/${m[2]}/${m[3]} (${WEEKDAYS_KO[wd]})`;
+  return `${m[2]}.${m[3]} (${WEEKDAYS_KO[wd]})`;
 }
 
 function calNormDs(v) {
@@ -8135,6 +8443,9 @@ function renderSidebarFooter() {
 function navigate(pageId) {
   STATE.page = pageId;
   STATE.filters = {};
+  // 브랜드 페이지 분기 자동 설정
+  if (pageId === 'brands_detail') STATE.filters.brands_view = 'detail';
+  if (pageId === 'brands_compare') STATE.filters.brands_view = 'compare';
   saveLastView();  // localStorage 저장
   renderNav();
   renderTopbar();
@@ -8153,6 +8464,8 @@ function renderTopbar() {
   const pageInfo = PAGES.find(p => p.id === STATE.page);
   const titles = {
     dashboard: { main: 'Dashboard', em: '대시보드' },
+    brands_detail: { main: 'Brands', em: '브랜드별' },
+    brands_compare: { main: 'Compare', em: '단계별 비교' },
     logs: { main: 'Communications', em: '커뮤니케이션' },
     rounds: { main: 'Rounds', em: '라운드' },
     stakeholders: { main: 'Contacts', em: '연락처' },
@@ -8165,7 +8478,7 @@ function renderTopbar() {
     guide: { main: 'Guide', em: '사용 가이드' },
     settings: { main: 'Settings', em: '설정' },
   };
-  const t = titles[STATE.page] || { main: pageInfo.label, em: '' };
+  const t = titles[STATE.page] || (pageInfo ? { main: pageInfo.label, em: '' } : { main: '', em: '' });
   
   tb.appendChild(el('div', { class: 'page-title' }, [
     t.main + ' ',
@@ -8323,7 +8636,13 @@ function renderContent() {
   
   switch (STATE.page) {
     case 'dashboard': renderDashboard(content); break;
-    case 'brands': renderBrands(content); break;
+    case 'brands':           // alias (옛 saveLastView 호환)
+    case 'brands_detail':
+      STATE.filters.brands_view = 'detail';
+      renderBrands(content); break;
+    case 'brands_compare':
+      STATE.filters.brands_view = 'compare';
+      renderBrands(content); break;
     case 'rounds': renderRounds(content); break;
     case 'logs': renderLogs(content); break;
     case 'stakeholders': renderStakeholders(content); break;
@@ -8420,6 +8739,359 @@ function isoWeekToSundayStr(year, week) {
 const TL_STATUS_KR = { planned: '예정', progress: '진행중', done: '완료', delayed: '지연' };
 const TL_STATUS_CYCLE = ['planned', 'progress', 'done', 'delayed'];
 const TL_MONTH_KR = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+
+// ═══════════════════════════════════════════════════════════════
+// Timeline Task Popover — 캘린더 + 타임라인 둘 다 사용
+// ═══════════════════════════════════════════════════════════════
+function closeTimelineTaskPopover() {
+  const existing = document.getElementById('tt-popover');
+  if (existing) {
+    if (existing._cleanup) existing._cleanup();
+    if (existing.parentNode) existing.parentNode.removeChild(existing);
+  }
+}
+
+function openTimelineTaskPopover(task, anchorEl) {
+  closeTimelineTaskPopover();
+  
+  const t = Object.assign({}, task);
+  const info = TIMELINE_CAT_INFO[t.category] || { color: '#888', name: t.category || '?' };
+  let curStatus = t.status || 'planned';
+  
+  // ━━━━━━ popover 생성 ━━━━━━
+  const popover = el('div', { class: 'tt-popover', id: 'tt-popover' });
+  
+  // ━━━━━━ 헤더 ━━━━━━
+  const titleInput = el('input', { 
+    type: 'text', class: 'tt-title-input', value: t.name || '', 
+    placeholder: '태스크 제목'
+  });
+  
+  const catChip = el('span', { 
+    class: 'tt-cat-chip',
+    style: { background: info.color + '22', color: info.color, borderColor: info.color + '55' }
+  }, info.name || t.category || '?');
+  
+  popover.appendChild(el('div', { class: 'tt-header' }, [
+    el('div', { class: 'tt-title-group' }, [titleInput, catChip]),
+    el('button', { class: 'tt-close', onclick: () => closeTimelineTaskPopover() }, '×')
+  ]));
+  
+  // ━━━━━━ 가로 분할: 좌측 기본 + 우측 브랜드 사이드바 ━━━━━━
+  const split = el('div', { class: 'tt-split' });
+  const leftCol = el('div', { class: 'tt-split-left' });
+  const rightCol = el('div', { class: 'tt-split-right' });
+  
+  // ── 좌측: 진행 상태 ──
+  leftCol.appendChild(el('div', { class: 'tt-section-label' }, '진행 상태'));
+  const statusRow = el('div', { class: 'tt-status-row' });
+  const statusChips = {};
+  ['planned', 'progress', 'done', 'delayed'].forEach(s => {
+    const chip = el('button', { 
+      class: 'tt-status-chip s-' + s + (s === curStatus ? ' active' : ''),
+      onclick: () => {
+        curStatus = s;
+        Object.keys(statusChips).forEach(k => {
+          statusChips[k].classList.toggle('active', k === s);
+        });
+      }
+    }, TL_STATUS_KR[s]);
+    statusChips[s] = chip;
+    statusRow.appendChild(chip);
+  });
+  leftCol.appendChild(statusRow);
+  
+  // ── 메모 ──
+  leftCol.appendChild(el('div', { class: 'tt-section-label' }, '메모'));
+  const fMemo = el('textarea', { class: 'tt-input', rows: 3, placeholder: '메모...' });
+  fMemo.value = t.memo || '';
+  leftCol.appendChild(fMemo);
+  
+  // ── 자세히 토글 ──
+  const detailToggle = el('div', { class: 'tt-detail-toggle' }, [
+    el('span', { class: 'tt-detail-toggle-arrow' }, '▸'),
+    el('span', {}, '일정 · 담당자 · 진행률')
+  ]);
+  leftCol.appendChild(detailToggle);
+  
+  const detailContent = el('div', { class: 'tt-detail-content' });
+  
+  // 자세히 자동 펼침 조건
+  const shouldExpand = !!(t.start_date || t.end_date || t.owner_id || Number(t.progress) > 0 || t.next_action);
+  if (shouldExpand) {
+    detailToggle.classList.add('open');
+    detailContent.style.display = 'block';
+  }
+  
+  detailToggle.onclick = () => {
+    const opened = detailToggle.classList.toggle('open');
+    detailContent.style.display = opened ? 'block' : 'none';
+  };
+  
+  // ── 담당자 + 시작 + 종료 ──
+  const ownerCell = el('div');
+  ownerCell.appendChild(el('div', { class: 'tt-section-label', style: { margin: '0 0 3px' } }, '담당자'));
+  
+  let curOwnerId = t.owner_id || '';
+  const ownerBtn = el('button', { class: 'tt-owner-btn', type: 'button' });
+  
+  function renderOwnerBtn() {
+    ownerBtn.innerHTML = '';
+    if (curOwnerId) {
+      const stk = (STATE.data.stakeholders || []).find(s => s.stakeholder_id === curOwnerId);
+      const name = stk ? (stk.name_ko || stk.name_en || stk.stakeholder_id) : curOwnerId;
+      ownerBtn.classList.add('has-owner');
+      ownerBtn.textContent = name;
+    } else {
+      ownerBtn.classList.remove('has-owner');
+      ownerBtn.textContent = '👤';
+    }
+  }
+  renderOwnerBtn();
+  
+  ownerBtn.onclick = (e) => {
+    e.stopPropagation();
+    // stakeholder picker — 기존 헬퍼 활용
+    if (typeof openStakeholderPicker === 'function') {
+      openStakeholderPicker({
+        anchor: ownerBtn,
+        selectedId: curOwnerId,
+        onSelect: (id) => {
+          curOwnerId = id || '';
+          renderOwnerBtn();
+        }
+      });
+    } else {
+      // fallback: prompt
+      const id = prompt('담당자 stakeholder_id를 입력해주세요', curOwnerId);
+      if (id !== null) { curOwnerId = id.trim(); renderOwnerBtn(); }
+    }
+  };
+  ownerCell.appendChild(ownerBtn);
+  
+  // 시작/종료 날짜 — makeDateInput 사용 (달력 + 텍스트 입력 둘 다)
+  const startCell = el('div');
+  startCell.appendChild(el('div', { class: 'tt-section-label', style: { margin: '0 0 3px' } }, '시작'));
+  const fStartDate = makeDateInput({ value: t.start_date || '', compact: true });
+  startCell.appendChild(fStartDate);
+  
+  const endCell = el('div');
+  endCell.appendChild(el('div', { class: 'tt-section-label', style: { margin: '0 0 3px' } }, '종료'));
+  const fEndDate = makeDateInput({ value: t.end_date || '', compact: true });
+  endCell.appendChild(fEndDate);
+  
+  detailContent.appendChild(el('div', { class: 'tt-row-grid', style: { marginTop: '4px' } }, [
+    ownerCell, startCell, endCell
+  ]));
+  
+  // 진행률
+  detailContent.appendChild(el('div', { class: 'tt-section-label' }, '진행률'));
+  const fProgress = el('input', { type: 'range', class: 'tt-progress-slider', value: Number(t.progress) || 0, min: 0, max: 100, step: 5 });
+  const progressVal = el('span', { class: 'tt-progress-val' }, (Number(t.progress) || 0) + '%');
+  fProgress.oninput = () => { progressVal.textContent = fProgress.value + '%'; };
+  detailContent.appendChild(el('div', { class: 'tt-progress-row' }, [fProgress, progressVal]));
+  
+  // 다음 액션
+  detailContent.appendChild(el('div', { class: 'tt-section-label' }, '다음 액션'));
+  const fNextAction = el('input', { type: 'text', class: 'tt-input', value: t.next_action || '', placeholder: '다음에 할 일...' });
+  detailContent.appendChild(fNextAction);
+  
+  leftCol.appendChild(detailContent);
+  
+  // ── 우측: 브랜드 사이드바 ──
+  const completedSet = new Set(
+    String(t.brand_completion || '').split(',').map(s => s.trim()).filter(Boolean)
+  );
+  const brandChecks = [];
+  
+  // 음식 브랜드만 (B01 쿠팡이츠 + B14 라꼰즈 제외)
+  const brandsForCheck = (STATE.data.brands || []).slice()
+    .filter(b => b.brand_id && b.brand_id !== 'B01' && b.brand_id !== 'B14' && b.brand_id !== 'B15')
+    .sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
+  
+  const countLabel = el('span', { class: 'tt-section-label', style: { margin: '0 0 5px' } });
+  function updateCount() {
+    const c = brandChecks.filter(bc => bc.checked).length;
+    countLabel.textContent = '브랜드별 완료 (' + c + '/' + brandsForCheck.length + ')';
+  }
+  rightCol.appendChild(countLabel);
+  
+  const brandList = el('div', { class: 'tt-brand-list' });
+  brandsForCheck.forEach(b => {
+    let isChecked = completedSet.has(b.brand_id);
+    const row = el('div', { 
+      class: 'tt-brand-row' + (isChecked ? ' checked' : ''),
+      onclick: () => {
+        isChecked = !isChecked;
+        row.classList.toggle('checked', isChecked);
+        bc.checked = isChecked;
+        updateCount();
+      }
+    }, [
+      el('span', { class: 'tt-brand-row-cb' }),
+      el('span', { class: 'tt-brand-row-id' }, b.brand_id),
+      el('span', { class: 'tt-brand-row-name', title: b.brand_name || '' }, b.brand_name || '')
+    ]);
+    const bc = { brand_id: b.brand_id, get checked() { return isChecked; }, set checked(v) { isChecked = v; } };
+    brandChecks.push(bc);
+    brandList.appendChild(row);
+  });
+  updateCount();
+  rightCol.appendChild(brandList);
+  
+  split.appendChild(leftCol);
+  split.appendChild(rightCol);
+  popover.appendChild(split);
+  
+  // ━━━━━━ 푸터 ━━━━━━
+  const isNewTask = !t.timeline_task_id;
+  
+  const deleteBtn = el('button', { 
+    class: 'tt-delete',
+    style: isNewTask ? { visibility: 'hidden' } : {},
+    onclick: async () => {
+      if (!confirm('이 태스크를 삭제하시겠어요?')) return;
+      try {
+        await apiDelete('timeline_tasks', t.timeline_task_id);
+        STATE.data.timeline_tasks = (STATE.data.timeline_tasks || []).filter(x => x.timeline_task_id !== t.timeline_task_id);
+        toast('삭제되었습니다', 'ok');
+        closeTimelineTaskPopover();
+        renderContent();
+      } catch (e) {
+        toast('삭제 실패: ' + (e.message || e), 'err');
+      }
+    }
+  }, '🗑 삭제');
+  
+  const cancelBtn = el('button', { class: 'tt-btn', onclick: () => closeTimelineTaskPopover() }, '취소');
+  
+  const saveBtn = el('button', { 
+    class: 'tt-btn primary',
+    onclick: async () => {
+      const name = titleInput.value.trim();
+      if (!name) { toast('태스크 이름을 입력해주세요', 'err'); return; }
+      
+      const sdV = String(fStartDate.value || '').trim();
+      const edV = String(fEndDate.value || '').trim();
+      if (sdV && edV && sdV > edV) {
+        toast('시작 날짜가 종료 날짜보다 늦습니다', 'err'); return;
+      }
+      
+      const completed = brandChecks.filter(bc => bc.checked).map(bc => bc.brand_id).join(',');
+      
+      const data = {
+        parent_id: t.parent_id || '',
+        category: t.category || 'contract',
+        name: name,
+        start_date: sdV,
+        end_date: edV,
+        status: curStatus,
+        progress: Number(fProgress.value) || 0,
+        brand_completion: completed,
+        owner_id: curOwnerId,
+        next_action: fNextAction.value.trim(),
+        url: t.url || '',
+        memo: fMemo.value
+      };
+      
+      try {
+        let saved;
+        if (isNewTask) {
+          saved = await apiCreate('timeline_tasks', data);
+          (STATE.data.timeline_tasks = STATE.data.timeline_tasks || []).push(saved);
+        } else {
+          saved = await apiUpdate('timeline_tasks', t.timeline_task_id, data);
+          const list = STATE.data.timeline_tasks || [];
+          const idx = list.findIndex(x => x.timeline_task_id === t.timeline_task_id);
+          if (idx >= 0) list[idx] = Object.assign({}, list[idx], saved);
+        }
+        toast(isNewTask ? '추가되었습니다' : '저장되었습니다', 'ok');
+        closeTimelineTaskPopover();
+        renderContent();
+      } catch (e) {
+        toast('저장 실패: ' + (e.message || e), 'err');
+      }
+    }
+  }, '저장');
+  
+  popover.appendChild(el('div', { class: 'tt-footer' }, [
+    deleteBtn,
+    el('div', { class: 'tt-actions' }, [cancelBtn, saveBtn])
+  ]));
+  
+  // ━━━━━━ 위치 + body 추가 ━━━━━━
+  document.body.appendChild(popover);
+  
+  function positionPopover() {
+    if (!anchorEl) {
+      popover.style.left = '50%';
+      popover.style.top = '100px';
+      popover.style.transform = 'translateX(-50%)';
+      return;
+    }
+    const rect = anchorEl.getBoundingClientRect();
+    const popW = popover.offsetWidth;
+    const popH = popover.offsetHeight;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    
+    // 가로: anchor 좌측 정렬 (화면 밖이면 안쪽으로)
+    let left = rect.left;
+    if (left + popW > vw - 10) left = vw - popW - 10;
+    if (left < 10) left = 10;
+    
+    // 세로: 아래가 우선, 안되면 위
+    let top = rect.bottom + 8;
+    let arrowOn = 'top';
+    if (top + popH > vh - 10) {
+      top = rect.top - popH - 8;
+      arrowOn = 'bottom';
+      if (top < 10) {
+        top = Math.max(10, vh - popH - 10);
+        arrowOn = 'none';
+      }
+    }
+    
+    popover.style.left = left + 'px';
+    popover.style.top = top + 'px';
+    popover.style.transform = 'none';
+    popover.classList.toggle('arrow-top', arrowOn === 'top');
+    popover.classList.toggle('arrow-bottom', arrowOn === 'bottom');
+    
+    // 말꼬리 left
+    const arrowLeft = Math.max(20, Math.min(rect.left + rect.width/2 - left, popW - 30));
+    popover.style.setProperty('--tt-arrow-left', arrowLeft + 'px');
+  }
+  
+  // 한 프레임 뒤 위치 (DOM 그려진 후)
+  requestAnimationFrame(() => positionPopover());
+  
+  // 이벤트 리스너
+  const onScrollOrResize = () => positionPopover();
+  document.addEventListener('scroll', onScrollOrResize, true);
+  window.addEventListener('resize', onScrollOrResize);
+  
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeTimelineTaskPopover(); }
+  };
+  document.addEventListener('keydown', onKeyDown);
+  
+  const onDocClick = (e) => {
+    if (popover.contains(e.target)) return;
+    if (e.target.closest('.stk-picker, .stk-popover, .cal-popup, .cal-input-row, .stk-pick-popover')) return;
+    closeTimelineTaskPopover();
+  };
+  setTimeout(() => document.addEventListener('click', onDocClick), 0);
+  
+  popover._cleanup = () => {
+    document.removeEventListener('scroll', onScrollOrResize, true);
+    window.removeEventListener('resize', onScrollOrResize);
+    document.removeEventListener('keydown', onKeyDown);
+    document.removeEventListener('click', onDocClick);
+  };
+  
+  return popover;
+}
 
 // ISO week 1번째 월요일
 function tlWeekToMonday(year, week) {
@@ -8608,8 +9280,9 @@ function renderCalendar(root) {
             color: info.color
           },
           title: (t.title || t.name || '') + (eStr && eStr !== dStr ? ' (' + dStr + ' ~ ' + eStr + ')' : ''),
-          onclick: () => {
-            toast((t.title || t.name || '(제목 없음)') + (eStr && eStr !== dStr ? ' (' + dStr + '~' + eStr + ')' : ''), 'ok');
+          onclick: (e) => {
+            e.stopPropagation();
+            openTimelineTaskPopover(t, eventBar);
           }
         }, isFirst ? (t.title || t.name || '(제목 없음)') : '');
         dayCell.appendChild(eventBar);
@@ -8799,7 +9472,7 @@ function renderTimeline(root) {
         
         const tLbl = el('div', { 
           class: 'tl-row-label',
-          onclick: () => openTimelineTaskModal(t)
+          onclick: function() { openTimelineTaskPopover(t, this); }
         }, [
           el('span', { style: { width: '12px', flexShrink: '0' } }),  // 들여쓰기
           el('span', { 
@@ -8823,7 +9496,7 @@ function renderTimeline(root) {
             width: 'calc(var(--tl-week-w) * ' + tSpan + ' - 4px)',
             background: tInfo.color
           },
-          onclick: (e) => { e.stopPropagation(); openTimelineTaskModal(t); },
+          onclick: function(e) { e.stopPropagation(); openTimelineTaskPopover(t, this); },
           title: t.name + ' (W' + tSw + '~W' + tEw + ') · ' + TL_STATUS_KR[t.status] + (prog ? ' · ' + prog + '%' : '')
         }, [
           prog > 0 && prog < 100 ? el('div', { 
@@ -13515,16 +14188,22 @@ function renderBrands(root) {
     el('button', {
       class: 'brands-view-btn' + (viewMode === 'detail' ? ' active' : ''),
       onclick: () => { 
+        STATE.page = 'brands_detail';
         STATE.filters.brands_view = 'detail'; 
         saveLastView();
+        renderNav();
+        renderTopbar();
         renderContent(); 
       }
     }, '📋 브랜드별'),
     el('button', {
       class: 'brands-view-btn' + (viewMode === 'compare' ? ' active' : ''),
       onclick: () => { 
+        STATE.page = 'brands_compare';
         STATE.filters.brands_view = 'compare'; 
         saveLastView();
+        renderNav();
+        renderTopbar();
         renderContent(); 
       }
     }, '⊞ 단계별 비교')
@@ -13739,6 +14418,10 @@ function renderBrandsCompareView(root) {
         if (e.target.closest('.brand-cell-risk')) return;
         STATE.filters.selected_brand = b.brand_id;
         STATE.filters.brands_view = 'detail';
+        STATE.page = 'brands_detail';
+        saveLastView();
+        renderNav();
+        renderTopbar();
         renderContent();
       }
     }, [
