@@ -2466,6 +2466,66 @@
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 14px;
   }
+  /* ─── 새 메일 강조 ─── */
+  .nav-badge.new-mail { background: #ef4444 !important; color: #fff !important; }
+  .nav-item.active .nav-badge.new-mail { background: #ef4444 !important; color: #fff !important; }
+
+  .mt-newbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    background: linear-gradient(90deg, rgba(239,68,68,0.10), rgba(239,68,68,0.04));
+    border: 1px solid rgba(239,68,68,0.28);
+    border-radius: 12px; padding: 12px 16px; margin-bottom: 14px;
+  }
+  .mt-newbar-icon { font-size: 18px; }
+  .mt-newbar-text { font-size: 13.5px; font-weight: 700; color: #b91c1c; }
+  .mt-newbar-sub  { font-size: 12px; font-weight: 600; color: #c2410c;
+    display: inline-flex; align-items: center; gap: 5px; cursor: pointer;
+    padding: 3px 9px; border-radius: 999px; background: rgba(234,88,12,0.12);
+    border: 1px solid rgba(234,88,12,0.30); }
+  .mt-newbar-sub:hover { background: rgba(234,88,12,0.20); }
+  .mt-newbar-read {
+    margin-left: auto; font-size: 12.5px; font-weight: 700;
+    color: #fff; background: #ef4444; border: none; border-radius: 8px;
+    padding: 7px 16px; cursor: pointer; transition: background .15s;
+  }
+  .mt-newbar-read:hover { background: #dc2626; }
+
+  .mt-card-newdot {
+    position: absolute; top: 12px; right: 12px;
+    width: 9px; height: 9px; border-radius: 50%; background: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239,68,68,0.18);
+  }
+  .mt-card { position: relative; }
+
+  .mt-tl-event.is-new {
+    background: rgba(239,68,68,0.06) !important;
+    box-shadow: inset 3px 0 0 #ef4444;
+  }
+  .mt-tl-event.is-new:hover { background: rgba(239,68,68,0.10) !important; }
+  .mt-tl-new-pin {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .3px;
+    color: #fff; background: #ef4444; border-radius: 4px;
+    padding: 1px 5px; margin-right: 6px; vertical-align: middle;
+  }
+
+  /* 미매칭 메일 처리 패널 */
+  .um-row {
+    border: 1px solid var(--border, #e5e7eb); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 10px; background: var(--surface, #fff);
+  }
+  .um-row.done { opacity: .45; }
+  .um-row-subj { font-size: 13px; font-weight: 700; color: var(--text, #111);
+    margin-bottom: 3px; }
+  .um-row-meta { font-size: 11.5px; color: var(--text-muted, #6b7280); margin-bottom: 9px; }
+  .um-row-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .um-row-controls select { flex: 1; min-width: 120px; }
+  .um-save-btn {
+    font-size: 12px; font-weight: 700; color: #fff; background: var(--primary, #4f46e5);
+    border: none; border-radius: 7px; padding: 7px 14px; cursor: pointer;
+  }
+  .um-save-btn:hover { opacity: .9; }
+  .um-save-btn:disabled { opacity: .4; cursor: default; }
+
   .mt-card {
     background: var(--glass-bg, white);
     border: 1px solid var(--glass-border, rgba(0,0,0,0.08));
@@ -6377,6 +6437,36 @@ function loadLastView() {
   } catch { return null; }
 }
 
+// ━━━━━━ 새 메일 강조 (마지막 확인 시각 기반, localStorage) ━━━━━━
+const MAIL_LAST_SEEN_KEY = 'chefhub_mail_last_seen';
+function _ts(v) {                       // 시각 → ms (비교용). ISO/날짜문자열 모두 처리
+  const d = new Date(String(v || '').trim());
+  return isNaN(d.getTime()) ? 0 : d.getTime();
+}
+function getMailLastSeenMs() {
+  try {
+    const v = localStorage.getItem(MAIL_LAST_SEEN_KEY);
+    if (v) { const t = _ts(v); if (t) return t; }
+  } catch {}
+  return Date.now() - 7 * 24 * 60 * 60 * 1000;  // 최초/없음 → 7일 전 기준 (폭탄 방지)
+}
+function markMailsRead() {
+  try { localStorage.setItem(MAIL_LAST_SEEN_KEY, new Date().toISOString()); } catch {}
+}
+// 새 메일 = 폴링분(raw_id 있음) + created_at이 마지막 확인 이후
+function isNewMail(l, lastSeenMs) {
+  if (!l || !String(l.raw_id || '').trim()) return false;
+  const c = _ts(l.created_at);
+  return c > 0 && c > lastSeenMs;
+}
+function getNewMails() {
+  const lastSeen = getMailLastSeenMs();
+  const all = (STATE.data.logs || []).filter(l => isNewMail(l, lastSeen));
+  const unmatched = all.filter(l => !String(l.brand_id || '').trim());
+  const newThreadIds = new Set(all.map(l => String(l.thread_id || '').trim()).filter(Boolean));
+  return { all, unmatched, newThreadIds, count: all.length, unmatchedCount: unmatched.length };
+}
+
 // 페이지 로드 시 마지막 view 복원
 (function() {
   const last = loadLastView();
@@ -8412,9 +8502,14 @@ function renderNav() {
   nav.innerHTML = '';
   PAGES.forEach(p => {
     let badge = null;
+    let badgeClass = 'nav-badge';
     if (p.id === 'tasks') {
       const pending = STATE.data.tasks.filter(t => t.status === '대기' || t.status === '진행중').length;
       if (pending > 0) badge = pending;
+    }
+    if (p.id === 'mail_threads') {
+      const n = getNewMails().count;
+      if (n > 0) { badge = n > 9 ? '9+' : n; badgeClass = 'nav-badge new-mail'; }
     }
     const item = el('button', {
       class: 'nav-item' + (STATE.page === p.id ? ' active' : ''),
@@ -8422,7 +8517,7 @@ function renderNav() {
     }, [
       el('span', { class: 'nav-icon' }, p.icon),
       el('span', {}, p.label),
-      badge ? el('span', { class: 'nav-badge' }, String(badge)) : null
+      badge ? el('span', { class: badgeClass }, String(badge)) : null
     ]);
     nav.appendChild(item);
   });
@@ -10084,6 +10179,27 @@ function renderMailThreads(root) {
   // 클라이언트 목록 (필터 옵션)
   const clientOrgs = [...new Set(enriched.map(t => t.client_org).filter(Boolean))].sort();
   
+  // ─── 새 메일 알림 바 ───
+  const nm = getNewMails();
+  if (nm.count > 0) {
+    const bar = el('div', { class: 'mt-newbar' }, [
+      el('span', { class: 'mt-newbar-icon' }, '📬'),
+      el('span', { class: 'mt-newbar-text' }, '새로 들어온 메일 ' + nm.count + '건'),
+      nm.unmatchedCount > 0
+        ? el('span', {
+            class: 'mt-newbar-sub',
+            title: '브랜드가 매칭되지 않은 새 메일 — 클릭해서 브랜드 지정',
+            onclick: () => openUnmatchedMailPanel()
+          }, ['⚠ 브랜드 미확인 ' + nm.unmatchedCount + '건'])
+        : null,
+      el('button', {
+        class: 'mt-newbar-read',
+        onclick: () => { markMailsRead(); renderNav(); renderContent(); toast('✓ 다 읽음 처리됨'); }
+      }, '다 읽음')
+    ].filter(Boolean));
+    root.appendChild(bar);
+  }
+
   // ─── 필터/정렬 바 ───
   const fbar = el('div', { class: 'filter-bar' }, [
     el('span', { class: 'filter-label' }, '필터'),
@@ -10190,6 +10306,16 @@ function mailThreadCard(t) {
   });
   
   card.appendChild(el('div', { class: 'mt-card-status-bar s-' + status }));
+
+  // 새 메일 있는 스레드 → 빨간 점
+  const _lastSeen = getMailLastSeenMs();
+  const newInThread = relatedLogs.filter(l => isNewMail(l, _lastSeen)).length;
+  if (newInThread > 0) {
+    card.appendChild(el('div', {
+      class: 'mt-card-newdot',
+      title: '새 메일 ' + newInThread + '건'
+    }));
+  }
   
   // 메일함 URL 버튼 (단일 클릭: 복사, 더블클릭: 인라인 편집)
   const mailboxBtn = el('button', {
@@ -10615,10 +10741,12 @@ function openMailThreadDetail(t) {
       }
     }, '🔗');
     
+    const _isNew = isNewMail(l, getMailLastSeenMs());
     const event = el('div', { 
       class: 'mt-tl-event tl-type-' + (l.type || '메일') + ' ' +
              (l.direction === '발신' ? 'dir-out' : 
-              l.direction === '수신' ? 'dir-in' : 'dir-none'), 
+              l.direction === '수신' ? 'dir-in' : 'dir-none') +
+             (_isNew ? ' is-new' : ''), 
       'data-log-id': l.log_id  // 핵심 흐름에서 스크롤 타겟용
     }, [
       el('div', {}, [
@@ -10633,6 +10761,7 @@ function openMailThreadDetail(t) {
         expandable
       ])
     ]);
+    if (_isNew) subjEl.insertBefore(el('span', { class: 'mt-tl-new-pin' }, 'NEW'), subjEl.firstChild);
     
     // 토글 동작 — 헤더 + 제목 둘 다 클릭 시 펼침
     const toggleExpand = () => {
@@ -12329,6 +12458,93 @@ function renderTimelineTask(task, thread, onUpdated) {
   ]);
   
   return card;
+}
+
+// ⚠ 브랜드 미확인 새 메일 빠른 처리 패널
+function openUnmatchedMailPanel() {
+  const brands = (STATE.data.brands || []);
+  const threads = (STATE.data.mail_threads || []);
+  const stk = (STATE.data.stakeholders || []);
+  const nameOf = (id) => {
+    if (!id) return '';
+    const s = stk.find(x => x.stakeholder_id === id);
+    return s ? (s.name_ko || s.name_en || id) : id;
+  };
+  const splitIds2 = (str) => String(str || '').split(/[,;]/).map(x => x.trim()).filter(Boolean);
+
+  const unmatched = getNewMails().unmatched.slice();
+  const body = el('div', {});
+
+  if (unmatched.length === 0) {
+    body.appendChild(el('div', {
+      style: { padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }
+    }, '미매칭 새 메일이 없습니다 👍'));
+  }
+
+  unmatched.forEach(l => {
+    const row = el('div', { class: 'um-row' });
+    row.appendChild(el('div', { class: 'um-row-subj' }, l.subject || '(제목 없음)'));
+    const fromN = nameOf(l.from_id);
+    const toN = splitIds2(l.to_ids).map(nameOf).join(', ');
+    row.appendChild(el('div', { class: 'um-row-meta' },
+      (l.date || '') + ' · ' + (fromN || '?') + (toN ? ' → ' + toN : '')));
+
+    const bsel = el('select', {});
+    bsel.appendChild(el('option', { value: '' }, '— 브랜드 선택 —'));
+    brands.forEach(b => bsel.appendChild(
+      el('option', { value: b.brand_id }, b.brand_id + ' · ' + (b.brand_name || ''))));
+
+    const tsel = el('select', {});
+    const fillThreads = (bid) => {
+      tsel.innerHTML = '';
+      tsel.appendChild(el('option', { value: '' }, '(스레드 자동/없음)'));
+      threads.forEach(t => tsel.appendChild(
+        el('option', { value: t.thread_id }, t.thread_id + ' · ' + (t.name || ''))));
+      const cand = threads.filter(t => String(t.brand_id || '').trim() === bid);
+      if (cand.length === 1) tsel.value = cand[0].thread_id;  // 브랜드 스레드 1개면 자동
+    };
+    fillThreads('');
+
+    const saveBtn = el('button', { class: 'um-save-btn', disabled: true }, '저장');
+    bsel.addEventListener('change', () => { fillThreads(bsel.value); saveBtn.disabled = !bsel.value; });
+
+    const controls = el('div', { class: 'um-row-controls' }, [bsel, tsel, saveBtn]);
+
+    saveBtn.addEventListener('click', async () => {
+      const bid = bsel.value;
+      if (!bid) return;
+      const brand = brands.find(b => b.brand_id === bid);
+      const patch = { brand_id: bid, category: (brand ? (brand.brand_name || '') : ''), thread_id: tsel.value || '' };
+      saveBtn.disabled = true; saveBtn.textContent = '저장 중…';
+      try {
+        await apiUpdate('logs', l.log_id, patch);
+        Object.assign(l, patch);  // STATE 반영 (같은 객체 참조)
+        row.classList.add('done');
+        controls.replaceWith(el('div', {
+          style: { fontSize: '12px', fontWeight: '700', color: '#16a34a' }
+        }, '✓ ' + bid + (patch.thread_id ? ' · ' + patch.thread_id : '') + ' 저장됨'));
+        toast('✓ 저장됨');
+      } catch (err) {
+        saveBtn.disabled = false; saveBtn.textContent = '저장';
+        toast(err.message || '저장 실패', 'err');
+      }
+    });
+
+    row.appendChild(controls);
+    body.appendChild(row);
+  });
+
+  openModal({
+    title: '⚠ 브랜드 미확인 메일 ' + unmatched.length + '건',
+    body: body,
+    wide: true,
+    footer: [
+      el('button', {
+        class: 'btn btn-secondary',
+        onclick: () => { closeModal(); renderNav(); renderContent(); }
+      }, '닫기')
+    ]
+  });
 }
 
 function openMailEditForm(thread, existingLog, options) {
