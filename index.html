@@ -6263,6 +6263,7 @@
     background: rgba(0,0,0,0.025);
   }
   .mt-tl-quoted-head:hover { background: rgba(0,0,0,0.05); }
+  .mt-tl-quoted-sep { border-top: 1px dashed #e5e7eb; margin: 8px 0; }
   .mt-tl-quoted-body {
     font-size: 11.5px; color: var(--text-faint, #9ca3af);
     line-height: 1.5; white-space: pre-wrap; word-break: break-word;
@@ -6520,10 +6521,12 @@ function isNewMail(l, lastSeenMs) {
 // 노이즈 발신자 메일은 isNewMail 단계에서 이미 제외됨
 function getNewMails() {
   const lastSeen = getMailLastSeenMs();
-  const all = (STATE.data.logs || []).filter(l => isNewMail(l, lastSeen));
-  const unmatched = all.filter(l => !String(l.brand_id || '').trim());
+  // 브랜드가 매칭된 폴링 메일만 "새 메일"로 — 브랜드 미확인(노이즈·내부 메일)은 제외
+  const all = (STATE.data.logs || [])
+    .filter(l => isNewMail(l, lastSeen))
+    .filter(l => String(l.brand_id || '').trim());
   const newThreadIds = new Set(all.map(l => String(l.thread_id || '').trim()).filter(Boolean));
-  return { all, unmatched, newThreadIds, count: all.length, unmatchedCount: unmatched.length };
+  return { all, unmatched: [], newThreadIds, count: all.length, unmatchedCount: 0 };
 }
 
 // 페이지 로드 시 마지막 view 복원
@@ -8262,46 +8265,15 @@ function findQuotedMatch(segText, threadLogs) {
 }
 function buildMailBodyEls(l) {
   const els = [];
-  const quotedRaw = l.quoted_text || '';
+  // 새 내용만 표시. 인용분은 화면에서 숨김 (폴링이 미등록 인용 메일을 별도 로그로 등록함)
   let mainText = l.summary || '';
-  let quotedSegs = [];
-
-  if (quotedRaw) {
-    quotedSegs = splitMailThread(quotedRaw);
-  } else if (mainText) {
-    // 옛날 메일(백엔드 분리 전): summary에 인용 포함 → 표시용으로 분리
+  if (!l.quoted_text && mainText) {
+    // 옛날 메일(분리 전): summary에서 인용 떼고 새 내용만
     const segs = splitMailThread(mainText);
-    if (segs.length > 1) { mainText = segs[0]; quotedSegs = segs.slice(1); }
+    if (segs.length > 1) mainText = segs[0];
   }
-
   if (mainText && mainText.trim()) {
     els.push(el('div', { class: 'mt-tl-summary' }, cleanMailBody(mainText)));
-  }
-
-  if (quotedSegs.length > 0) {
-    const threadLogs = (STATE.data.logs || [])
-      .filter(x => x.thread_id === l.thread_id && x.log_id !== l.log_id);
-    const wrap = el('div', { class: 'mt-tl-quoted-wrap' });
-    quotedSegs.forEach(seg => {
-      if (!seg || !seg.trim()) return;
-      const match = findQuotedMatch(seg, threadLogs);
-      if (match) {
-        return;  // ⭐ 이미 위에 정식 줄로 있는 메일 → 인용분 완전히 숨김
-      } else {
-        const head = el('div', { class: 'mt-tl-quoted-head' }, '↳ 인용된 이전 대화 (펼치기)');
-        const bodyEl = el('div', { class: 'mt-tl-quoted-body', style: { display: 'none' } },
-          cleanMailBody(seg));
-        head.addEventListener('click', (e) => {
-          e.stopPropagation();
-          const open = bodyEl.style.display !== 'none';
-          bodyEl.style.display = open ? 'none' : 'block';
-          head.textContent = open ? '↳ 인용된 이전 대화 (펼치기)' : '↳ 인용된 이전 대화 (접기)';
-        });
-        wrap.appendChild(head);
-        wrap.appendChild(bodyEl);
-      }
-    });
-    if (wrap.childNodes.length > 0) els.push(wrap);
   }
   return els;
 }
