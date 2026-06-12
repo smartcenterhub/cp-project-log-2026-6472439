@@ -6505,13 +6505,19 @@ function markOneUnread(logId) {
   const s = getReadIds(); s.delete(String(logId)); _saveReadIds(s);
 }
 
-// 새 메일 = 폴링분(raw_id 있음) + created_at이 마지막 확인 이후 + 개별 읽음 안 한 것
+// 노이즈 발신자(S9000번대 = 미확정/뉴스레터 블록: YOZM·펜타레터·NEWNEEK 등)
+function isNoiseSenderId(id) {
+  return /^S9\d/.test(String(id || '').trim());
+}
+// 새 메일 = 폴링분(raw_id 있음) + created_at이 마지막 확인 이후 + 개별 읽음 안 함 + 노이즈 아님
 function isNewMail(l, lastSeenMs) {
   if (!l || !String(l.raw_id || '').trim()) return false;
+  if (isNoiseSenderId(l.from_id)) return false;      // ⭐ 노이즈(브랜드 미확인) 숨김
   if (isMailRead(l.log_id)) return false;            // 개별 읽음 처리됨
   const c = _ts(l.created_at);
   return c > 0 && c > lastSeenMs;
 }
+// 노이즈 발신자 메일은 isNewMail 단계에서 이미 제외됨
 function getNewMails() {
   const lastSeen = getMailLastSeenMs();
   const all = (STATE.data.logs || []).filter(l => isNewMail(l, lastSeen));
