@@ -8286,13 +8286,7 @@ function buildMailBodyEls(l) {
       if (!seg || !seg.trim()) return;
       const match = findQuotedMatch(seg, threadLogs);
       if (match) {
-        const fromN = stkNameById(match.from_id);
-        wrap.appendChild(el('div', {
-          class: 'mt-tl-quoted-dup',
-          title: '이미 위(또는 다른 줄)에 기록된 메일이라 접었습니다'
-        }, '↳ 이미 기록된 메일: ' + (match.date || '') +
-           (fromN ? ' · ' + fromN : '') + ' · ' +
-           (normalizeSubject(match.subject || '') || '(제목 없음)').slice(0, 40)));
+        return;  // ⭐ 이미 위에 정식 줄로 있는 메일 → 인용분 완전히 숨김
       } else {
         const head = el('div', { class: 'mt-tl-quoted-head' }, '↳ 인용된 이전 대화 (펼치기)');
         const bodyEl = el('div', { class: 'mt-tl-quoted-body', style: { display: 'none' } },
@@ -10898,9 +10892,10 @@ function openMailThreadDetail(t) {
         class: 'mt-tl-read-btn', type: 'button', title: '이 메일 읽음 처리',
         onclick: (e) => {
           e.stopPropagation();
-          markOneRead(l.log_id);
-          renderNav();          // 네비 배지 갱신
-          rerenderTimeline();   // 이 메일 NEW 해제
+          markOneRead(l.log_id);   // localStorage 저장 (즉시·가벼움)
+          renderNav();             // 네비 배지 갱신
+          rerenderTimeline();      // 이 메일 NEW 해제
+          renderContent();         // 뒤쪽 카드 빨간 점·알림바 즉시 갱신
         }
       }, '✓ 읽음');
       headerEl.insertBefore(readBtn, headerEl.firstChild);
