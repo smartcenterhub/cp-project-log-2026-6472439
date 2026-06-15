@@ -3443,6 +3443,32 @@
   .tt-owner-btn.has-owner:hover { background: rgba(79, 70, 229, 0.12); }
   
   /* 브랜드 리스트 (우측 사이드바) */
+  /* ── 브랜드별 상태칩 (timeline_tasks 13개 열) ── */
+  .tt-bs-wrap { display: flex; flex-direction: column; }
+  .tt-bs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .tt-bs-count { font-size: 11px; color: var(--text-muted); }
+  .tt-bs-list {
+    display: flex; flex-direction: column; gap: 3px;
+    max-height: 300px; overflow-y: auto;
+    border: 0.5px solid var(--border); border-radius: 6px;
+    padding: 4px; background: rgba(0,0,0,0.015);
+  }
+  .tt-bs-list::-webkit-scrollbar { width: 6px; }
+  .tt-bs-list::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
+  .tt-bs-row {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 6px; border-radius: 4px; transition: background 0.08s;
+  }
+  .tt-bs-id { font-size: 10.5px; color: var(--text-muted); width: 26px; flex-shrink: 0; }
+  .tt-bs-name { font-size: 12px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tt-bs-chip {
+    font-size: 11px; padding: 1px 8px; border-radius: 10px;
+    cursor: pointer; flex-shrink: 0; user-select: none; min-width: 30px; text-align: center;
+  }
+  .tt-bs-chip:hover { filter: brightness(0.94); }
+  .tt-bs-memo { font-size: 10px; color: var(--text-muted); flex-shrink: 0; max-width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tt-bs-hint { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+  
   .tt-brand-list {
     display: flex;
     flex-direction: column;
@@ -8962,6 +8988,54 @@ function isoWeekToSundayStr(year, week) {
 }
 const TL_STATUS_KR = { planned: '예정', progress: '진행중', done: '완료', delayed: '지연' };
 const TL_STATUS_CYCLE = ['planned', 'progress', 'done', 'delayed'];
+
+// ━━━━━━ 브랜드별 상태 (timeline_tasks 브랜드 13개 열) ━━━━━━
+// 시트 헤더가 객체 키로 들어옴: t['피자헛(B02)'] = '완료\n6/4'
+// 13개 브랜드 (B01 쿠팡이츠 · B14 라꼰즈 제외, B15 서브웨이 포함)
+const TT_BRAND_COLS = [
+  { id: 'B02', name: '피자헛',       col: '피자헛(B02)' },
+  { id: 'B03', name: '꾸브라꼬',     col: '꾸브라꼬(B03)' },
+  { id: 'B04', name: '노모어피자',   col: '노모어피자(B04)' },
+  { id: 'B05', name: '요아정',       col: '요아정(B05)' },
+  { id: 'B06', name: '노브랜드버거', col: '노브랜드버거(B06)' },
+  { id: 'B07', name: '배스킨라빈스', col: '배스킨라빈스(B07)' },
+  { id: 'B08', name: '두찜',         col: '두찜(B08)' },
+  { id: 'B09', name: '메가커피',     col: '메가커피(B09)' },
+  { id: 'B10', name: 'BHC',          col: 'BHC(B10)' },
+  { id: 'B11', name: '던킨',         col: '던킨(B11)' },
+  { id: 'B12', name: '도미노피자',   col: '도미노피자(B12)' },
+  { id: 'B13', name: '굽네치킨',     col: '굽네치킨(B13)' },
+  { id: 'B15', name: '서브웨이',     col: '서브웨이(B15)' }
+];
+// 상태 키 ↔ 한글 (시트엔 한글로 저장)
+const BST_KR = { done: '완료', progress: '진행', planned: '예정', unknown: '미정', delayed: '지연' };
+const BST_FROM_KR = { '완료': 'done', '진행': 'progress', '진행중': 'progress', '예정': 'planned', '미정': 'unknown', '지연': 'delayed', '': 'none' };
+const BST_CYCLE = ['planned', 'progress', 'done', 'delayed', 'unknown'];
+// [배경, 칩배경, 칩글자]
+const BST_COLOR = {
+  done:     ['#E1F5EE', '#5DCAA5', '#04342C'],
+  progress: ['#FAEEDA', '#EF9F27', '#412402'],
+  planned:  ['#E6F1FB', '#85B7EB', '#042C53'],
+  delayed:  ['#FCEBEB', '#E24B4A', '#ffffff'],
+  unknown:  ['#ECEFF1', '#B4B2A9', '#2C2C2A'],
+  none:     ['transparent', '#D3D1C7', '#5F5E5A']
+};
+// 셀 값 '완료\n6/4' → { status:'done', memo:'6/4' }
+function parseBrandCell(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s) return { status: 'none', memo: '' };
+  const nl = s.indexOf('\n');
+  const head = (nl >= 0 ? s.slice(0, nl) : s).trim();
+  const memo = nl >= 0 ? s.slice(nl + 1).trim() : '';
+  const st = BST_FROM_KR[head] != null ? BST_FROM_KR[head] : 'unknown';
+  return { status: st, memo: memo };
+}
+// { status, memo } → '완료\n6/4' (none이면 빈칸)
+function serializeBrandCell(status, memo) {
+  if (status === 'none') return '';
+  const kr = BST_KR[status] || '미정';
+  return memo ? (kr + '\n' + memo) : kr;
+}
 const TL_MONTH_KR = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
 // ═══════════════════════════════════════════════════════════════
@@ -8973,6 +9047,79 @@ function closeTimelineTaskPopover() {
     if (existing._cleanup) existing._cleanup();
     if (existing.parentNode) existing.parentNode.removeChild(existing);
   }
+}
+
+// ━━━━━━ 공통: 브랜드별 상태칩 리스트 빌더 ━━━━━━
+// task의 13개 브랜드 열을 읽어 상태칩 행 생성. 칩 클릭=상태순환(메모 보기전용).
+// 반환: { wrap(DOM), collect() } — collect()는 변경된 브랜드열만 {col: '완료\n메모'} 객체로
+function buildBrandStatusList(task, opts) {
+  opts = opts || {};
+  const state = {}; // col -> { status, memo }
+  TT_BRAND_COLS.forEach(b => { state[b.col] = parseBrandCell(task[b.col]); });
+
+  const countLabel = el('span', { class: 'tt-bs-count' });
+  function updateCount() {
+    let d = 0, p = 0;
+    TT_BRAND_COLS.forEach(b => {
+      if (state[b.col].status === 'done') d++;
+      else if (state[b.col].status === 'progress') p++;
+    });
+    countLabel.textContent = '완료 ' + d + ' · 진행 ' + p;
+  }
+
+  const list = el('div', { class: 'tt-bs-list' });
+  TT_BRAND_COLS.forEach(b => {
+    const cur = state[b.col];
+    const idEl = el('span', { class: 'tt-bs-id' }, b.id);
+    const nameEl = el('span', { class: 'tt-bs-name', title: b.name }, b.name);
+    const chip = el('span', { class: 'tt-bs-chip' });
+    const memoEl = el('span', { class: 'tt-bs-memo' });
+    const row = el('div', { class: 'tt-bs-row' }, [idEl, nameEl, chip, memoEl]);
+
+    function paint() {
+      const st = state[b.col].status;
+      const c = BST_COLOR[st] || BST_COLOR.none;
+      row.style.background = (st === 'none') ? 'transparent' : c[0];
+      chip.style.background = c[1];
+      chip.style.color = c[2];
+      chip.textContent = (st === 'none') ? '–' : BST_KR[st];
+      memoEl.textContent = state[b.col].memo || '';
+    }
+    paint();
+
+    chip.onclick = (e) => {
+      e.stopPropagation();
+      const order = ['none'].concat(BST_CYCLE); // none → 예정 → 진행 → 완료 → 지연 → 미정 → none
+      const i = order.indexOf(state[b.col].status);
+      state[b.col].status = order[(i + 1) % order.length];
+      paint();
+      updateCount();
+    };
+    list.appendChild(row);
+  });
+  updateCount();
+
+  const header = el('div', { class: 'tt-bs-header' }, [
+    el('span', { class: 'tt-section-label', style: { margin: 0 } }, '브랜드별 상태'),
+    countLabel
+  ]);
+  const hint = el('div', { class: 'tt-bs-hint' }, '칩 클릭 → 상태 순환');
+
+  const wrap = el('div', { class: 'tt-bs-wrap' }, [header, list, hint]);
+
+  // 변경분만 수집 (원래 값과 다른 열만)
+  function collect() {
+    const out = {};
+    TT_BRAND_COLS.forEach(b => {
+      const orig = parseBrandCell(task[b.col]);
+      const now = state[b.col];
+      if (orig.status !== now.status || orig.memo !== now.memo) {
+        out[b.col] = serializeBrandCell(now.status, now.memo);
+      }
+    });
+    return out;
+  }
+  return { wrap, collect };
 }
 
 function openTimelineTaskPopover(task, anchorEl) {
@@ -9122,46 +9269,9 @@ function openTimelineTaskPopover(task, anchorEl) {
   
   leftCol.appendChild(detailContent);
   
-  // ── 우측: 브랜드 사이드바 ──
-  const completedSet = new Set(
-    String(t.brand_completion || '').split(',').map(s => s.trim()).filter(Boolean)
-  );
-  const brandChecks = [];
-  
-  // 음식 브랜드만 (B01 쿠팡이츠 + B14 라꼰즈 제외)
-  const brandsForCheck = (STATE.data.brands || []).slice()
-    .filter(b => b.brand_id && b.brand_id !== 'B01' && b.brand_id !== 'B14' && b.brand_id !== 'B15')
-    .sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''));
-  
-  const countLabel = el('span', { class: 'tt-section-label', style: { margin: '0 0 5px' } });
-  function updateCount() {
-    const c = brandChecks.filter(bc => bc.checked).length;
-    countLabel.textContent = '브랜드별 완료 (' + c + '/' + brandsForCheck.length + ')';
-  }
-  rightCol.appendChild(countLabel);
-  
-  const brandList = el('div', { class: 'tt-brand-list' });
-  brandsForCheck.forEach(b => {
-    let isChecked = completedSet.has(b.brand_id);
-    const row = el('div', { 
-      class: 'tt-brand-row' + (isChecked ? ' checked' : ''),
-      onclick: () => {
-        isChecked = !isChecked;
-        row.classList.toggle('checked', isChecked);
-        bc.checked = isChecked;
-        updateCount();
-      }
-    }, [
-      el('span', { class: 'tt-brand-row-cb' }),
-      el('span', { class: 'tt-brand-row-id' }, b.brand_id),
-      el('span', { class: 'tt-brand-row-name', title: b.brand_name || '' }, b.brand_name || '')
-    ]);
-    const bc = { brand_id: b.brand_id, get checked() { return isChecked; }, set checked(v) { isChecked = v; } };
-    brandChecks.push(bc);
-    brandList.appendChild(row);
-  });
-  updateCount();
-  rightCol.appendChild(brandList);
+  // ── 우측: 브랜드별 상태칩 (13개 열 기반) ──
+  const brandStatus = buildBrandStatusList(t);
+  rightCol.appendChild(brandStatus.wrap);
   
   split.appendChild(leftCol);
   split.appendChild(rightCol);
@@ -9201,7 +9311,7 @@ function openTimelineTaskPopover(task, anchorEl) {
         toast('시작 날짜가 종료 날짜보다 늦습니다', 'err'); return;
       }
       
-      const completed = brandChecks.filter(bc => bc.checked).map(bc => bc.brand_id).join(',');
+      const brandChanges = brandStatus.collect();
       
       const data = {
         parent_id: t.parent_id || '',
@@ -9211,12 +9321,12 @@ function openTimelineTaskPopover(task, anchorEl) {
         end_date: edV,
         status: curStatus,
         progress: Number(fProgress.value) || 0,
-        brand_completion: completed,
         owner_id: curOwnerId,
         next_action: fNextAction.value.trim(),
         url: t.url || '',
         memo: fMemo.value
       };
+      Object.assign(data, brandChanges); // 변경된 브랜드 열만 추가
       
       try {
         let saved;
@@ -10003,30 +10113,9 @@ function openTimelineTaskModal(existing) {
   const fMemo = el('textarea', { class: 'mp-input', rows: 4, placeholder: '메모 (누적 기록)' });
   fMemo.value = t.memo || '';
   
-  // 브랜드 체크박스 그리드 (13개 음식 브랜드만)
-  const completedSet = new Set(
-    (t.brand_completion || '').split(',').map(s => s.trim()).filter(Boolean)
-  );
-  const brandChecks = [];
-  const brandGrid = el('div', { class: 'tl-brand-grid' });
-  (STATE.data.brands || []).slice()
-    .sort((a, b) => (a.brand_id || '').localeCompare(b.brand_id || ''))
-    .forEach(b => {
-      const checked = completedSet.has(b.brand_id);
-      const cb = el('input', { type: 'checkbox', checked });
-      const label = el('label', { 
-        class: 'tl-brand-check' + (checked ? ' checked' : '')
-      }, [
-        cb,
-        el('span', {}, b.brand_id + ' ' + b.brand_name)
-      ]);
-      cb.addEventListener('change', () => {
-        if (cb.checked) label.classList.add('checked'); 
-        else label.classList.remove('checked');
-      });
-      brandChecks.push({ brand_id: b.brand_id, cb });
-      brandGrid.appendChild(label);
-    });
+  // 브랜드별 상태칩 (13개 열 기반) — 팝오버와 동일 헬퍼
+  const brandStatus = buildBrandStatusList(t);
+  const brandGrid = brandStatus.wrap;
   
   // 관련 logs 자동 표시 (category 매칭)
   // category 매핑: contract → 모델계약/브랜드계약, visual → 키비주얼, menu → 메뉴개발, youtube → 유튜브, promo → 판촉물, campaign → 노출/KPI, report → KPI
@@ -10135,7 +10224,7 @@ function openTimelineTaskModal(existing) {
     fieldRow('외부 링크 (URL)', fUrl),
     fieldRow('메모', fMemo),
     el('div', { class: 'mp-row' }, [
-      el('div', { class: 'mp-label' }, '브랜드별 완료 체크 ('+brandChecks.length+'개)'),
+      el('div', { class: 'mp-label' }, '브랜드별 상태 (' + TT_BRAND_COLS.length + '개)'),
       brandGrid
     ]),
     logsSection,
@@ -10169,8 +10258,8 @@ function openTimelineTaskModal(existing) {
         toast('시작 날짜가 종료 날짜보다 늦습니다', 'err'); return;
       }
       
-      // brand_completion 직렬화
-      const completed = brandChecks.filter(x => x.cb.checked).map(x => x.brand_id).join(',');
+      // 변경된 브랜드 상태 열만
+      const brandChanges = brandStatus.collect();
       
       const data = {
         parent_id: fParent.value,
@@ -10180,12 +10269,12 @@ function openTimelineTaskModal(existing) {
         end_date: edV,
         status: curStatus,
         progress: Number(fProgress.value),
-        brand_completion: completed,
         owner_id: fOwner.value,
         next_action: fNextAction.value.trim(),
         url: fUrl.value.trim(),
         memo: fMemo.value
       };
+      Object.assign(data, brandChanges);
       
       try {
         if (isEdit) {
@@ -16252,29 +16341,35 @@ function renderBrandsDetailView(root) {
       ]));
     }
     
-    const matchKeys = [b.brand_name, ...baliases].filter(Boolean).map(k => k.toLowerCase());
-    const matchedTimelineTasks = (STATE.data.timeline_tasks || []).filter(tt => {
-      const text = (tt.name || '').toLowerCase();
-      return matchKeys.some(k => k && text.includes(k));
-    });
+    // 이 브랜드의 13개 열 중 해당 열에 상태가 채워진 타임라인 작업 표시
+    const brandCol = (TT_BRAND_COLS.find(x => x.id === b.brand_id) || {}).col;
+    const brandTimelineTasks = brandCol
+      ? (STATE.data.timeline_tasks || [])
+          .map(tt => ({ tt, st: parseBrandCell(tt[brandCol]) }))
+          .filter(x => x.st.status !== 'none')
+      : [];
     
-    if (matchedTimelineTasks.length > 0) {
+    if (brandTimelineTasks.length > 0) {
+      const dn = brandTimelineTasks.filter(x => x.st.status === 'done').length;
       detailEl.appendChild(el('div', { class: 'brand-list-section' }, [
-        el('h4', { class: 'brand-section-title' }, '▦ 타임라인 관련 태스크 (' + matchedTimelineTasks.length + ')'),
-        el('div', { class: 'brand-tt-list' }, matchedTimelineTasks.map(tt => {
-          const prog = parseInt(tt.progress || 0, 10) || 0;
-          const status = tt.status || 'planned';
-          return el('div', { class: 'brand-tt-item' }, [
+        el('h4', { class: 'brand-section-title' }, '▦ 타임라인 진행 상태 (' + dn + '/' + brandTimelineTasks.length + ' 완료)'),
+        el('div', { class: 'brand-tt-list' }, brandTimelineTasks.map(x => {
+          const tt = x.tt, st = x.st.status, c = BST_COLOR[st] || BST_COLOR.none;
+          const chip = el('span', { class: 'brand-tt-bchip', style: {
+            background: c[1], color: c[2], padding: '1px 8px', borderRadius: '10px', fontSize: '11px', whiteSpace: 'nowrap'
+          } }, BST_KR[st]);
+          return el('div', {
+            class: 'brand-tt-item',
+            style: { cursor: 'pointer' },
+            onclick: () => openTimelineTaskPopover(tt, null)
+          }, [
             el('div', { class: 'brand-tt-head' }, [
               el('span', { class: 'brand-tt-id' }, tt.timeline_task_id || ''),
               el('span', { class: 'brand-tt-name' }, tt.name || ''),
-              el('span', { class: 'brand-tt-status status-' + status }, status)
+              chip
             ]),
-            el('div', { class: 'brand-tt-progress' }, [
-              el('div', { class: 'brand-tt-progress-bar', style: { width: prog + '%' } })
-            ]),
-            el('div', { class: 'brand-tt-progress-text' }, prog + '%')
-          ]);
+            x.st.memo ? el('div', { class: 'brand-tt-progress-text', style: { color: 'var(--muted, #888)' } }, x.st.memo) : null
+          ].filter(Boolean));
         }))
       ]));
     }
