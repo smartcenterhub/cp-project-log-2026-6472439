@@ -8281,15 +8281,31 @@ function findQuotedMatch(segText, threadLogs) {
   }
   return null;
 }
+// 본문에서 인용(이전 대화) 시작점을 찾아 그 앞(새 내용)만 반환 — 인용분 항상 숨김
+function stripQuotedForDisplay(text) {
+  const t = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (!t.trim()) return '';
+  const pats = [
+    /-{2,}\s*(?:Original Message|원본\s*메[시세]지|Forwarded message|전달된\s*메시지)\s*-{2,}/i,
+    /\n[ \t]*From\s*:\s*[^\n]+\n[ \t]*(?:Sent|Date|To)\s*[:：]/i,
+    /\n[ \t]*보낸\s*사람\s*[:：]/,
+    /\n[ \t]*Von\s*:\s*[^\n]+\n[ \t]*(?:Gesendet|Datum)\s*[:：]/i,
+    /\bFrom\s*:\s*[^\n<]*<[^>]+>\s*(?:\n|\s)*(?:To|Cc|Sent|Subject)\s*[:：]/i,
+    /\n[ \t]*On\b[^\n]{4,}\bwrote\s*[:：]/i,
+    /(?:20\d{2}[.\-년][^\n]{2,})작성\s*[:：]/
+  ];
+  let cut = -1;
+  pats.forEach(re => {
+    const m = t.match(re);
+    if (m && (cut < 0 || m.index < cut)) cut = m.index;
+  });
+  return (cut >= 0 ? t.slice(0, cut) : t).trim();
+}
+
 function buildMailBodyEls(l) {
   const els = [];
-  // 새 내용만 표시. 인용분은 화면에서 숨김 (폴링이 미등록 인용 메일을 별도 로그로 등록함)
-  let mainText = l.summary || '';
-  if (!l.quoted_text && mainText) {
-    // 옛날 메일(분리 전): summary에서 인용 떼고 새 내용만
-    const segs = splitMailThread(mainText);
-    if (segs.length > 1) mainText = segs[0];
-  }
+  // quoted_text 유무와 무관하게 항상 인용분 잘라내고 새 내용만 표시
+  const mainText = stripQuotedForDisplay(l.summary || '');
   if (mainText && mainText.trim()) {
     els.push(el('div', { class: 'mt-tl-summary' }, cleanMailBody(mainText)));
   }
