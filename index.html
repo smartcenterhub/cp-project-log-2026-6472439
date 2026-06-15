@@ -2489,6 +2489,24 @@
     padding: 7px 16px; cursor: pointer; transition: background .15s;
   }
   .mt-newbar-read:hover { background: #dc2626; }
+  .mt-newbar-hint { font-size: 11.5px; font-weight: 600; color: #b91c1c; opacity: .7; margin-left: 4px; }
+  .nm-row {
+    border: 1px solid var(--border, #e5e7eb); border-radius: 10px;
+    padding: 11px 14px; margin-bottom: 9px; cursor: pointer;
+    background: var(--surface, #fff); transition: background .12s, border-color .12s;
+  }
+  .nm-row:hover { background: rgba(79,70,229,0.04); border-color: var(--primary, #4f46e5); }
+  .nm-row-nolink { cursor: default; }
+  .nm-row-nolink:hover { background: var(--surface, #fff); border-color: var(--border, #e5e7eb); }
+  .nm-row-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .nm-brand {
+    font-size: 11.5px; font-weight: 800; color: #fff; background: var(--primary, #4f46e5);
+    padding: 2px 9px; border-radius: 999px;
+  }
+  .nm-date { font-size: 11px; color: var(--text-faint, #9ca3af); }
+  .nm-subj { font-size: 13px; font-weight: 700; color: var(--text, #111); margin-bottom: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nm-meta { font-size: 11.5px; color: var(--text-muted, #6b7280); }
 
   .mt-card-newdot {
     position: absolute; top: 12px; right: 12px;
@@ -10277,19 +10295,18 @@ function renderMailThreads(root) {
   // ─── 새 메일 알림 바 ───
   const nm = getNewMails();
   if (nm.count > 0) {
-    const bar = el('div', { class: 'mt-newbar' }, [
+    const bar = el('div', {
+      class: 'mt-newbar',
+      style: { cursor: 'pointer' },
+      title: '클릭하면 새 메일 목록 보기',
+      onclick: () => openNewMailListPanel()
+    }, [
       el('span', { class: 'mt-newbar-icon' }, '📬'),
       el('span', { class: 'mt-newbar-text' }, '새로 들어온 메일 ' + nm.count + '건'),
-      nm.unmatchedCount > 0
-        ? el('span', {
-            class: 'mt-newbar-sub',
-            title: '브랜드가 매칭되지 않은 새 메일 — 클릭해서 브랜드 지정',
-            onclick: () => openUnmatchedMailPanel()
-          }, ['⚠ 브랜드 미확인 ' + nm.unmatchedCount + '건'])
-        : null,
+      el('span', { class: 'mt-newbar-hint' }, '클릭해서 목록 보기 →'),
       el('button', {
         class: 'mt-newbar-read',
-        onclick: () => { markMailsRead(); renderNav(); renderContent(); toast('✓ 다 읽음 처리됨'); }
+        onclick: (e) => { e.stopPropagation(); markMailsRead(); renderNav(); renderContent(); toast('✓ 다 읽음 처리됨'); }
       }, '다 읽음')
     ].filter(Boolean));
     root.appendChild(bar);
@@ -12568,6 +12585,58 @@ function renderTimelineTask(task, thread, onUpdated) {
   ]);
   
   return card;
+}
+
+// 📬 새로 들어온 메일 목록 (알림바 클릭)
+function openNewMailListPanel() {
+  const nm = getNewMails();
+  const brands = (STATE.data.brands || []);
+  const threads = (STATE.data.mail_threads || []);
+  const brandName = (id) => {
+    const b = brands.find(x => x.brand_id === id);
+    return b ? (b.brand_name || id) : (id || '');
+  };
+  const body = el('div', {});
+
+  if (nm.all.length === 0) {
+    body.appendChild(el('div', {
+      style: { padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }
+    }, '새 메일이 없습니다 👍'));
+  }
+
+  const sorted = nm.all.slice().sort((a, b) =>
+    String(b.created_at || b.date || '').localeCompare(String(a.created_at || a.date || '')));
+
+  sorted.forEach(l => {
+    const tid = String(l.thread_id || '').trim();
+    const th = threads.find(t => t.thread_id === tid);
+    const row = el('div', {
+      class: 'nm-row' + (th ? '' : ' nm-row-nolink'),
+      onclick: () => { if (th) { closeModal(); openMailThreadDetail(th); } }
+    });
+    row.appendChild(el('div', { class: 'nm-row-top' }, [
+      el('span', { class: 'nm-brand' }, brandName(l.brand_id) || '브랜드 미상'),
+      el('span', { class: 'nm-date' }, l.date || '')
+    ]));
+    row.appendChild(el('div', { class: 'nm-subj' }, l.subject || '(제목 없음)'));
+    const fromN = stkNameById(l.from_id);
+    row.appendChild(el('div', { class: 'nm-meta' },
+      (l.direction || '') + (fromN ? ' · ' + fromN : '') + (th ? '' : ' · (스레드 없음)')));
+    body.appendChild(row);
+  });
+
+  openModal({
+    title: '📬 새로 들어온 메일 ' + nm.count + '건',
+    body: body,
+    wide: true,
+    footer: [
+      el('button', { class: 'btn btn-secondary', onclick: () => closeModal() }, '닫기'),
+      el('button', {
+        class: 'btn btn-primary',
+        onclick: () => { markMailsRead(); closeModal(); renderNav(); renderContent(); toast('✓ 다 읽음 처리됨'); }
+      }, '다 읽음')
+    ]
+  });
 }
 
 // ⚠ 브랜드 미확인 새 메일 빠른 처리 패널
