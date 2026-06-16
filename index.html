@@ -2470,6 +2470,19 @@
   .nav-badge.new-mail { background: #ef4444 !important; color: #fff !important; }
   .nav-item.active .nav-badge.new-mail { background: #ef4444 !important; color: #fff !important; }
 
+  /* ─── 메일 동기화 버튼 ─── */
+  .mt-syncrow { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .mt-sync-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--primary, #4f46e5); color: #fff;
+    border: none; border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .15s, opacity .15s;
+  }
+  .mt-sync-btn:hover { background: #4338ca; }
+  .mt-sync-btn:disabled { opacity: .6; cursor: default; }
+  .mt-sync-btn.syncing { background: #6b7280; }
+
   .mt-newbar {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     background: linear-gradient(90deg, rgba(239,68,68,0.10), rgba(239,68,68,0.04));
@@ -8277,15 +8290,49 @@ function splitMailThread(text) {
 // ─── 첨부 파일명 자동 추출 (본문에서 확장자 매칭) ─────────────────
 // ─── 메일 본문 정리 (공백/빈 줄 압축) ─────────────────────
 // 원본 메일 본문이 Outlook 등에서 큰 빈 줄을 많이 포함하는 경우가 많아 정리
+// 줄바꿈이 거의 없이 한 덩어리로 저장된 본문을, 흔한 마커 앞에서 끊어 단락화
+// (메일플러그 등 HTML→텍스트 변환 시 줄바꿈이 유실된 메일 대응)
+function smartParagraphize(text) {
+  let t = String(text || '');
+  // 1) 번호 목록: "1." "2)" "3 )" 앞에 줄바꿈 (앞에 공백/문자가 붙어 있어도)
+  //    단, 소수점(3.14)·시간(10:30)·날짜(2026.06)는 제외하려고 뒤에 공백/한글/문자 오는 경우만
+  t = t.replace(/\s*(?=\b[1-9][0-9]?\s*[.)]\s*\S)/g, '\n');
+  // 2) 소문자 마커: "1)" 형태는 위에서 처리됨. 추가로 "①②③" 원형 숫자
+  t = t.replace(/\s*(?=[①②③④⑤⑥⑦⑧⑨⑩])/g, '\n');
+  // 3) 들여쓰기 마커: "ㄴ", "-", "·", "※", "*", "■", "▶", "▼" 가 문장 중간에 나오면 그 앞에서 끊기
+  t = t.replace(/\s*(?=[ㄴ·※■▶▼]\s*\S)/g, '\n');
+  t = t.replace(/(\S)\s+(?=-\s+\S)/g, '$1\n');  // " - " 형태 (하이픈 불릿)
+  // 4) 문장 종결 후 다음 문장 시작: "~다." "~요." "~까?" "~니다." 등 뒤에 한글이 바로 붙으면 줄바꿈
+  t = t.replace(/([다요죠음함됨]\.)\s*(?=[가-힣])/g, '$1\n');
+  t = t.replace(/([다요죠까]\?)\s*(?=[가-힣])/g, '$1\n');
+  t = t.replace(/(니다[.!])\s*(?=[가-힣])/g, '$1\n');
+  t = t.replace(/(습니다)\s*(?=[가-힣A-Z])/g, '$1\n');  // 마침표 빠진 경우도
+  t = t.replace(/(드립니다|바랍니다|드려요|드립니당|부탁드립니다)\s*(?=[가-힣A-Z0-9])/g, '$1\n');
+  // 5) 콜론 항목: "제목:" "일시:" 같은 라벨 앞 (한글 라벨 + 콜론)
+  t = t.replace(/\s+(?=[가-힣]{1,8}\s*:\s*\S)/g, '\n');
+  return t;
+}
+
 function cleanMailBody(text) {
   if (!text) return '';
-  return String(text)
+  let t = String(text)
     .replace(/\r\n/g, '\n')
-    .replace(/\u00a0/g, ' ')             // non-breaking space → 일반 space
+    .replace(/\u00a0/g, ' ');            // non-breaking space → 일반 space
+
+  // 본문에 줄바꿈이 거의 없으면(한 덩어리로 저장된 메일) 스마트 단락화 적용
+  // 기준: 전체 길이 대비 줄바꿈 비율이 매우 낮고, 길이가 어느 정도 있는 경우
+  const nlCount = (t.match(/\n/g) || []).length;
+  const len = t.length;
+  if (len > 120 && nlCount < len / 80) {
+    t = smartParagraphize(t);
+  }
+
+  return t
     .split('\n')
-    .map(l => l.replace(/[ \t]+$/g, '')) // 각 줄 끝 공백 제거
+    .map(l => l.replace(/[ \t]+$/g, '').replace(/^[ \t]+/, '')) // 양쪽 공백 정리
     .join('\n')
     .replace(/\n{3,}/g, '\n\n')          // 3+ 연속 빈 줄 → 2개로 축소
+    .replace(/^\n+/, '')
     .trim();
 }
 
@@ -8766,6 +8813,50 @@ async function refreshData() {
     toast('데이터를 새로 불러왔습니다');
   } catch (err) {
     toast(err.message, 'err');
+  }
+}
+
+// ─── 메일 동기화: Gmail 폴링 실행 → 데이터 새로고침 ───
+let _mailSyncing = false;
+async function syncMail() {
+  if (_mailSyncing) return;
+  if (!CONFIG.APPS_SCRIPT_URL) {
+    toast('Apps Script URL이 설정되지 않았습니다', 'err');
+    return;
+  }
+  _mailSyncing = true;
+  // 버튼 상태 표시
+  const btns = document.querySelectorAll('[data-sync-btn]');
+  btns.forEach(b => { b.disabled = true; b.classList.add('syncing'); b.dataset.label = b.textContent; b.textContent = '동기화 중…'; });
+  if (typeof showTopLoading === 'function') showTopLoading(20, '새 메일 가져오는 중…');
+  try {
+    // 1) Gmail 폴링 (Apps Script doGet의 action=poll)
+    const res = await fetch(CONFIG.APPS_SCRIPT_URL + '?action=poll');
+    if (typeof showTopLoading === 'function') showTopLoading(60, '메일 분류 중…');
+    let polled = 0;
+    try {
+      const json = await res.json();
+      if (json && json.ok) polled = json.added || json.count || 0;
+    } catch (_) { /* 응답 파싱 실패해도 아래서 데이터는 새로고침 */ }
+
+    // 2) 시트 데이터 새로고침
+    if (typeof showTopLoading === 'function') showTopLoading(85, '화면 갱신 중…');
+    await apiFetchAll(true);
+    renderContent();
+    renderNav();
+    if (typeof showTopLoading === 'function') { showTopLoading(100, '✓ 완료'); setTimeout(() => { if (typeof hideTopLoading === 'function') hideTopLoading(); }, 250); }
+
+    if (polled > 0) toast('📬 새 메일 ' + polled + '건을 가져왔습니다');
+    else toast('✓ 동기화 완료 (새 메일 없음)');
+  } catch (err) {
+    if (typeof hideTopLoading === 'function') hideTopLoading();
+    toast('동기화 실패: ' + err.message, 'err');
+  } finally {
+    _mailSyncing = false;
+    document.querySelectorAll('[data-sync-btn]').forEach(b => {
+      b.disabled = false; b.classList.remove('syncing');
+      if (b.dataset.label) b.textContent = b.dataset.label;
+    });
   }
 }
 
@@ -10397,6 +10488,17 @@ function renderMailThreads(root) {
   // 클라이언트 목록 (필터 옵션)
   const clientOrgs = [...new Set(enriched.map(t => t.client_org).filter(Boolean))].sort();
   
+  // ─── 메일 동기화 버튼 줄 (항상 표시) ───
+  const syncRow = el('div', { class: 'mt-syncrow' }, [
+    el('button', {
+      class: 'mt-sync-btn',
+      'data-sync-btn': '1',
+      title: 'Gmail에서 새 메일을 가져옵니다',
+      onclick: () => syncMail()
+    }, '🔄 메일 동기화')
+  ]);
+  root.appendChild(syncRow);
+
   // ─── 새 메일 알림 바 ───
   const nm = getNewMails();
   if (nm.count > 0) {
